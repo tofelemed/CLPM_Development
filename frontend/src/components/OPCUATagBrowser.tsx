@@ -42,7 +42,7 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const OPCUA_API_BASE = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8080/api/v1';
+const OPCUA_API_BASE = (import.meta as any).env.VITE_OPCUA_API_BASE || 'http://localhost:3001';
 
 interface OPCUANode {
   nodeId: string;
@@ -86,6 +86,11 @@ export default function OPCUATagBrowser({
   const [searchTerm, setSearchTerm] = useState('');
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [connectionLoading, setConnectionLoading] = useState(false);
+  const [nodeHistory, setNodeHistory] = useState<Array<{nodeId: string, path: string[]}>>([{nodeId: 'RootFolder', path: ['RootFolder']}]);
+  const [historyIndex, setHistoryIndex] = useState(0);
+  const [showNodeDetails, setShowNodeDetails] = useState<OPCUANode | null>(null);
+  const [nodeValue, setNodeValue] = useState<any>(null);
+  const [readingValue, setReadingValue] = useState(false);
 
   useEffect(() => {
     if (open) {
@@ -103,13 +108,21 @@ export default function OPCUATagBrowser({
     try {
       setLoading(true);
       const response = await axios.get(`${OPCUA_API_BASE}/connections`);
-      setConnections(response.data.connections);
+      const connections = response.data.connections || [];
       
-      if (response.data.connections.length > 0) {
-        setSelectedConnection(response.data.connections[0].id);
+      // Filter only connected connections
+      const connectedConnections = connections.filter((conn: OPCUAConnection) => conn.status === 'connected');
+      setConnections(connectedConnections);
+      
+      if (connectedConnections.length > 0) {
+        setSelectedConnection(connectedConnections[0].id);
+      } else if (connections.length > 0) {
+        setError('No connected OPC UA servers found. Please connect to a server first.');
+      } else {
+        setError('No OPC UA connections configured. Please create a connection first.');
       }
     } catch (error: any) {
-      setError('Failed to fetch OPC UA connections');
+      setError(`Failed to fetch OPC UA connections: ${error.response?.data?.error || error.message}`);
       console.error('Error fetching connections:', error);
     } finally {
       setLoading(false);
@@ -117,7 +130,10 @@ export default function OPCUATagBrowser({
   };
 
   const browseNodes = async (nodeId: string, path: string[] = ['RootFolder']) => {
-    if (!selectedConnection) return;
+    if (!selectedConnection) {
+      setError('Please select a connected OPC UA server first.');
+      return;
+    }
 
     try {
       setLoading(true);
@@ -127,31 +143,61 @@ export default function OPCUATagBrowser({
         params: { nodeId, maxResults: 1000 }
       });
       
-      setNodes(response.data.results);
+      const results = response.data.results || [];
+      setNodes(results);
       setCurrentPath(path);
+      
+      // Clear search results when browsing
+      setSearchResults([]);
+      setSearchTerm('');
     } catch (error: any) {
-      setError(`Failed to browse nodes: ${error.response?.data?.error || error.message}`);
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(`Failed to browse nodes: ${errorMessage}`);
       console.error('Error browsing nodes:', error);
+      
+      // If it's a connection error, refresh connections
+      if (errorMessage.includes('Connection not available') || errorMessage.includes('not found')) {
+        fetchConnections();
+      }
     } finally {
       setLoading(false);
     }
   };
 
   const searchNodes = async () => {
-    if (!selectedConnection || !searchTerm.trim()) return;
+    if (!selectedConnection) {
+      setError('Please select a connected OPC UA server first.');
+      return;
+    }
+    
+    if (!searchTerm.trim()) {
+      setError('Please enter a search term.');
+      return;
+    }
 
     try {
       setSearchLoading(true);
       setError(null);
       
       const response = await axios.get(`${OPCUA_API_BASE}/connections/${selectedConnection}/search`, {
-        params: { q: searchTerm, maxResults: 100 }
+        params: { q: searchTerm.trim(), maxResults: 100 }
       });
       
-      setSearchResults(response.data.results);
+      const results = response.data.results || [];
+      setSearchResults(results);
+      
+      if (results.length === 0) {
+        setError(`No nodes found matching "${searchTerm}".`);
+      }
     } catch (error: any) {
-      setError(`Failed to search nodes: ${error.response?.data?.error || error.message}`);
+      const errorMessage = error.response?.data?.error || error.message;
+      setError(`Failed to search nodes: ${errorMessage}`);
       console.error('Error searching nodes:', error);
+      
+      // If it's a connection error, refresh connections
+      if (errorMessage.includes('Connection not available') || errorMessage.includes('not found')) {
+        fetchConnections();
+      }
     } finally {
       setSearchLoading(false);
     }
@@ -162,6 +208,9 @@ export default function OPCUATagBrowser({
       const newPath = [...currentPath, node.displayName];
       browseNodes(node.nodeId, newPath);
       setExpandedNodes(prev => new Set([...prev, node.nodeId]));
+    } else {
+      // For leaf nodes, we can directly select them
+      handleTagSelect(node);
     }
   };
 
@@ -169,16 +218,42 @@ export default function OPCUATagBrowser({
     if (index === 0) {
       browseNodes('RootFolder', ['RootFolder']);
     } else {
-      // Navigate to the specific path level
-      const newPath = currentPath.slice(0, index + 1);
-      // This would need to be implemented with proper path tracking
-      browseNodes('RootFolder', newPath);
+      // For now, just go back to root since we don't have proper path tracking
+      // In a full implementation, we'd need to store nodeId for each path level
+      browseNodes('RootFolder', ['RootFolder']);
     }
   };
 
   const handleTagSelect = (node: OPCUANode) => {
     onTagSelect(node);
-    onClose();
+    if (title === "OPC UA Tag Browser") {
+      onClose();
+    }
+  };
+
+  const readNodeValue = async (node: OPCUANode) => {
+    if (!selectedConnection) return;
+
+    try {
+      setReadingValue(true);
+      const response = await axios.get(`${OPCUA_API_BASE}/connections/${selectedConnection}/nodes/${encodeURIComponent(node.nodeId)}/read`);
+      setNodeValue(response.data.value);
+      setShowNodeDetails(node);
+    } catch (error: any) {
+      setError(`Failed to read node value: ${error.response?.data?.error || error.message}`);
+      console.error('Error reading node value:', error);
+    } finally {
+      setReadingValue(false);
+    }
+  };
+
+  const addNodeToHistory = (nodeId: string, path: string[]) => {
+    // Remove any history items after current index
+    const newHistory = nodeHistory.slice(0, historyIndex + 1);
+    // Add new item
+    newHistory.push({ nodeId, path });
+    setNodeHistory(newHistory);
+    setHistoryIndex(newHistory.length - 1);
   };
 
   const getNodeIcon = (node: OPCUANode) => {
@@ -200,51 +275,77 @@ export default function OPCUATagBrowser({
   const renderNodeList = (nodeList: OPCUANode[], title: string) => (
     <Box>
       <Typography variant="h6" gutterBottom>
-        {title}
+        {title} ({nodeList.length} items)
       </Typography>
-      <List dense>
-        {nodeList.map((node) => (
-          <ListItem
-            key={node.nodeId}
-            button
-            onClick={() => handleNodeClick(node)}
-            sx={{
-              '&:hover': {
-                backgroundColor: 'action.hover',
-              },
-            }}
-          >
-            <ListItemIcon>
-              {getNodeIcon(node)}
-            </ListItemIcon>
-            <ListItemText
-              primary={node.displayName}
-              secondary={
-                <Box>
-                  <Typography variant="caption" display="block">
-                    {node.browseName} ({getNodeClassLabel(node.nodeClass)})
-                  </Typography>
-                  <Typography variant="caption" color="textSecondary">
-                    {node.nodeId}
-                  </Typography>
-                </Box>
-              }
-            />
-            {!node.hasChildren && (
-              <IconButton
-                size="small"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleTagSelect(node);
-                }}
-                color="primary"
-              >
-                <CheckIcon />
-              </IconButton>
-            )}
-          </ListItem>
-        ))}
-      </List>
+      {nodeList.length === 0 ? (
+        <Typography variant="body2" color="textSecondary" sx={{ textAlign: 'center', py: 4 }}>
+          No nodes found. Try expanding parent nodes or adjusting your search.
+        </Typography>
+      ) : (
+        <List dense>
+          {nodeList.map((node) => (
+            <ListItem
+              key={node.nodeId}
+              button
+              onClick={() => handleNodeClick(node)}
+              sx={{
+                '&:hover': {
+                  backgroundColor: 'action.hover',
+                },
+                border: selectedTag?.nodeId === node.nodeId ? '2px solid' : '1px solid transparent',
+                borderColor: selectedTag?.nodeId === node.nodeId ? 'primary.main' : 'transparent',
+                borderRadius: 1,
+                mb: 0.5
+              }}
+            >
+              <ListItemIcon>
+                {getNodeIcon(node)}
+              </ListItemIcon>
+              <ListItemText
+                primary={
+                  <Box display="flex" alignItems="center" gap={1}>
+                    <Typography variant="body2" fontWeight={selectedTag?.nodeId === node.nodeId ? 'bold' : 'normal'}>
+                      {node.displayName}
+                    </Typography>
+                    {node.hasChildren && (
+                      <Chip size="small" label={`${node.hasChildren ? 'Container' : 'Variable'}`} variant="outlined" />
+                    )}
+                  </Box>
+                }
+                secondary={
+                  <Box>
+                    <Typography variant="caption" display="block">
+                      {node.browseName} ({getNodeClassLabel(node.nodeClass)})
+                    </Typography>
+                    <Typography variant="caption" color="textSecondary" sx={{ wordBreak: 'break-all' }}>
+                      {node.nodeId}
+                    </Typography>
+                  </Box>
+                }
+              />
+              {!node.hasChildren && (
+                <IconButton
+                  size="small"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleTagSelect(node);
+                  }}
+                  color="primary"
+                  sx={{
+                    backgroundColor: selectedTag?.nodeId === node.nodeId ? 'primary.main' : 'transparent',
+                    color: selectedTag?.nodeId === node.nodeId ? 'white' : 'inherit',
+                    '&:hover': {
+                      backgroundColor: selectedTag?.nodeId === node.nodeId ? 'primary.dark' : 'action.hover',
+                    }
+                  }}
+                >
+                  <CheckIcon />
+                </IconButton>
+              )}
+            </ListItem>
+          ))}
+        </List>
+      )}
     </Box>
   );
 
@@ -293,7 +394,14 @@ export default function OPCUATagBrowser({
                     {connections.map((conn) => (
                       <MenuItem key={conn.id} value={conn.id}>
                         <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
-                          <Typography>{conn.endpointUrl}</Typography>
+                          <Box>
+                            <Typography variant="body2">{conn.endpointUrl}</Typography>
+                            {conn.monitoredItemsCount !== undefined && (
+                              <Typography variant="caption" color="textSecondary">
+                                {conn.monitoredItemsCount} monitored items
+                              </Typography>
+                            )}
+                          </Box>
                           <Chip 
                             label={conn.status} 
                             size="small" 
@@ -332,6 +440,7 @@ export default function OPCUATagBrowser({
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && searchNodes()}
                     disabled={!selectedConnection}
+                    helperText="Search by node name, browse name, or node ID"
                   />
                   <Button
                     variant="contained"
@@ -341,6 +450,17 @@ export default function OPCUATagBrowser({
                   >
                     Search
                   </Button>
+                  {searchResults.length > 0 && (
+                    <Button
+                      variant="outlined"
+                      onClick={() => {
+                        setSearchResults([]);
+                        setSearchTerm('');
+                      }}
+                    >
+                      Clear
+                    </Button>
+                  )}
                 </Box>
                 {searchLoading && (
                   <Box display="flex" justifyContent="center" mt={2}>

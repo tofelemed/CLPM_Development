@@ -2,7 +2,7 @@ import { OPCUAServer, Variant, DataType } from "node-opcua";
 import pino from "pino";
 const log = pino();
 
-const port = 4840;
+const port = 51310
 const endpoint = `opc.tcp://0.0.0.0:${port}`;
 
 function nowSeconds() { return Date.now() / 1000; }

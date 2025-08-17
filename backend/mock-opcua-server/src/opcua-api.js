@@ -211,6 +211,50 @@ app.get("/security-options", (req, res) => {
   });
 });
 
+// Discover endpoints
+app.get("/discover", async (req, res) => {
+  try {
+    const { endpointUrl } = req.query;
+    
+    if (!endpointUrl) {
+      return res.status(400).json({ error: "endpointUrl parameter is required" });
+    }
+
+    log.info({ endpointUrl }, "Discovering endpoints");
+    
+    const { OPCUAClient } = await import("node-opcua");
+    const client = OPCUAClient.create({
+      endpoint_must_exist: false
+    });
+
+    const endpoints = await client.getEndpoints(endpointUrl);
+    
+    const endpointInfo = endpoints.map(endpoint => ({
+      endpointUrl: endpoint.endpointUrl,
+      securityMode: endpoint.securityMode.toString(),
+      securityPolicy: endpoint.securityPolicyUri.split('#')[1] || 'None',
+      securityLevel: endpoint.securityLevel,
+      transportProfileUri: endpoint.transportProfileUri,
+      userTokenPolicies: endpoint.userIdentityTokens.map(token => ({
+        policyId: token.policyId,
+        tokenType: token.tokenType.toString(),
+        issuedTokenType: token.issuedTokenType,
+        securityPolicyUri: token.securityPolicyUri
+      }))
+    }));
+
+    res.json({
+      endpointUrl,
+      endpoints: endpointInfo,
+      count: endpointInfo.length
+    });
+    
+  } catch (error) {
+    log.error({ error: error.message }, "Failed to discover endpoints");
+    res.status(500).json({ error: `Failed to discover endpoints: ${error.message}` });
+  }
+});
+
 // Loop configuration endpoints
 app.post("/loops", async (req, res) => {
   try {
