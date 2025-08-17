@@ -1,0 +1,131 @@
+version: "3.9"
+services:
+  db:
+    container_name: clpm-db
+    image: timescale/timescaledb:latest-pg14
+    environment:
+      - POSTGRES_PASSWORD=clpm_pwd
+      - POSTGRES_USER=clpm
+      - POSTGRES_DB=clpm
+    ports:
+      - "5432:5432"
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      - ./db/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U clpm -d clpm"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mq:
+    container_name: mq
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmqctl", "status"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    container_name: redis
+    image: redis:7
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  keycloak:
+    container_name: keycloak
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev --http-port=8080
+    environment:
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+    ports:
+      - "8081:8080"
+    healthcheck:
+      test: ["CMD", "bash", "-c", "curl -fs http://localhost:8080/health/ready || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./backend/api-gateway
+    environment:
+      - DATABASE_URL=postgresql://clpm:clpm_pwd@clpm-db:5432/clpm
+      - RABBITMQ_URL=amqp://guest:guest@mq:5672
+      - REDIS_URL=redis://redis:6379/0
+      - OIDC_ISSUER=${OIDC_ISSUER}
+      - OIDC_AUDIENCE=${OIDC_AUDIENCE}
+      - OIDC_JWKS_URI=${OIDC_JWKS_URI}
+      - DIAG_SERVICE_URL=http://diagnostics:8050
+      - API_PORT=${API_PORT}
+    ports:
+      - "8080:8080"
+    depends_on:
+      db:
+        condition: service_healthy
+      mq:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  ingestion:
+    build: ./backend/ingestion
+    environment:
+      - RABBITMQ_URL=amqp://guest:guest@mq:5672
+      - INGESTION_EXCHANGE=${INGESTION_EXCHANGE}
+      - OPCUA_ENDPOINT=opc.tcp://mock-opcua:4840/UA/CLPM
+      - LOOPS_JSON=${LOOPS_JSON}
+    depends_on:
+      mq:
+        condition: service_healthy
+
+  aggregation:
+    build: ./backend/aggregation
+    environment:
+      - DATABASE_URL=postgresql://clpm:clpm_pwd@clpm-db:5432/clpm
+      - RABBITMQ_URL=amqp://guest:guest@mq:5672
+      - INGESTION_EXCHANGE=${INGESTION_EXCHANGE}
+    depends_on:
+      db:
+        condition: service_healthy
+      mq:
+        condition: service_healthy
+
+  diagnostics:
+    build: ./python-services/diagnostics_service
+    ports:
+      - "8050:8050"
+
+  kpiworker:
+    build: ./backend/kpi-worker
+    environment:
+      - DATABASE_URL=postgresql://clpm:clpm_pwd@clpm-db:5432/clpm
+      - KPI_WINDOW_MIN=15
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE=http://localhost:8080/api/v1
+      - VITE_OIDC_ISSUER=http://localhost:8081/realms/clpm
+
+  mock-opcua:
+    build: ./backend/mock-opcua-server
+    ports:
+      - "4841:4840"
+
+volumes:
+  db-data:

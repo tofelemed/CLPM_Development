@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clpm-api
+spec:
+  replicas: 2
+  selector: { matchLabels: { app: clpm-api } }
+  template:
+    metadata:
+      labels: { app: clpm-api }
+    spec:
+      containers:
+        - name: api
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: "{{ .Values.image.pullPolicy }}"
+          ports: [{ containerPort: 8080 }]
+          env:
+            - name: DATABASE_URL
+              value: "{{ .Values.env.DATABASE_URL }}"
+            - name: RABBITMQ_URL
+              value: "{{ .Values.env.RABBITMQ_URL }}"
+            - name: REDIS_URL
+              value: "{{ .Values.env.REDIS_URL }}"
+          readinessProbe:
+            httpGet: { path: /api/docs, port: 8080 }
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /api/v1/loops, port: 8080 }
+            initialDelaySeconds: 20
+            periodSeconds: 20
+          resources:
+            limits: { cpu: "500m", memory: "512Mi" }
+            requests: { cpu: "100m", memory: "128Mi" }
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: clpm-api
+spec:
+  type: {{ .Values.service.type }}
+  selector: { app: clpm-api }
+  ports:
+    - port: {{ .Values.service.port }}
+      targetPort: 8080
+      protocol: TCP
+      name: http

@@ -1,0 +1,15 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[project]
+name = "diagnostics_service"
+version = "0.2.0"
+description = "CLPM diagnostics microservice"
+authors = [{name="CLPM"}]
+dependencies = [
+  "fastapi>=0.111.0",
+  "uvicorn>=0.30.0",
+  "numpy>=1.26.0",
+  "scipy>=1.13.0",
+  "pydantic>=2.7.1"
+]

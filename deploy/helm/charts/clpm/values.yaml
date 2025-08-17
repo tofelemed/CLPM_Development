@@ -1,0 +1,17 @@
+image:
+  repository: your-registry/clpm-api
+  tag: latest
+  pullPolicy: IfNotPresent
+
+env:
+  DATABASE_URL: "postgresql://clpm:clpm_pwd@clpm-db:5432/clpm"
+  RABBITMQ_URL: "amqp://guest:guest@mq:5672"
+  REDIS_URL: "redis://redis:6379/0"
+
+service:
+  type: ClusterIP
+  port: 8080
+
+resources:
+  limits: { cpu: 500m, memory: 512Mi }
+  requests: { cpu: 100m, memory: 128Mi }
