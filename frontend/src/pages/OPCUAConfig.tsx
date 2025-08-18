@@ -62,6 +62,7 @@ export const OPCUAConfig: React.FC = () => {
                 >
                   <Activity className="w-4 h-4" />
                   Health
+                  
                 </TabsTrigger>
                 <TabsTrigger 
                   value="settings" 

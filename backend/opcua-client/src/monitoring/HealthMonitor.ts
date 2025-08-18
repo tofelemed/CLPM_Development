@@ -194,7 +194,7 @@ export class HealthMonitor extends EventEmitter {
       },
       cpu: {
         usage: 0, // Would need more sophisticated CPU tracking
-        loadAverage: require('os').loadavg()
+        loadAverage: [0, 0, 0] // loadAvg not available on Windows
       },
       uptime: process.uptime(),
       pid: process.pid
@@ -375,6 +375,16 @@ export class HealthMonitor extends EventEmitter {
    * Update data processing status
    */
   updateDataStatus(samplesProcessed: number, batchesPublished: number, publishErrors: number): void {
+    // Initialize data object if it doesn't exist
+    if (!this.healthStatus.data) {
+      this.healthStatus.data = {
+        samplesProcessed: 0,
+        batchesPublished: 0,
+        publishErrors: 0,
+        lastSampleTime: undefined
+      };
+    }
+    
     this.healthStatus.data.samplesProcessed = samplesProcessed;
     this.healthStatus.data.batchesPublished = batchesPublished;
     this.healthStatus.data.publishErrors = publishErrors;

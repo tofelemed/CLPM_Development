@@ -88,6 +88,18 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
     }
   });
 
+  // Health detailed endpoint for frontend compatibility
+  router.get('/health/detailed', (req: Request, res: Response) => {
+    const compatReq = req as CompatibilityRequest;
+    try {
+      const health = compatReq.opcuaClient.getHealthStatus();
+      res.json(health);
+    } catch (error: any) {
+      compatReq.logger.error({ error }, 'Detailed health check failed');
+      res.status(500).json({ error: 'Detailed health check failed' });
+    }
+  });
+
   // Security options endpoint
   router.get('/security-options', (req: Request, res: Response) => {
     const compatReq = req as CompatibilityRequest;
@@ -461,6 +473,35 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
     } catch (error: any) {
       compatReq.logger.error({ error }, 'Failed to upload certificate');
       res.status(500).json({ error: 'Failed to upload certificate' });
+    }
+  });
+
+  // Connection control endpoints
+  router.post('/connections/:serverId/connect', async (req: Request, res: Response) => {
+    const compatReq = req as CompatibilityRequest;
+    try {
+      const { serverId } = req.params;
+      await compatReq.opcuaClient.connectServer(serverId);
+      
+      compatReq.logger.info({ serverId }, 'Manual connect request via compatibility API');
+      res.json({ success: true, message: 'Connection initiated' });
+    } catch (error: any) {
+      compatReq.logger.error({ error, serverId: req.params.serverId }, 'Failed to connect server');
+      res.status(500).json({ error: error.message || 'Failed to connect server' });
+    }
+  });
+
+  router.post('/connections/:serverId/disconnect', async (req: Request, res: Response) => {
+    const compatReq = req as CompatibilityRequest;
+    try {
+      const { serverId } = req.params;
+      await compatReq.opcuaClient.disconnectServer(serverId);
+      
+      compatReq.logger.info({ serverId }, 'Manual disconnect request via compatibility API');
+      res.json({ success: true, message: 'Disconnection initiated' });
+    } catch (error: any) {
+      compatReq.logger.error({ error, serverId: req.params.serverId }, 'Failed to disconnect server');
+      res.status(500).json({ error: error.message || 'Failed to disconnect server' });
     }
   });
 

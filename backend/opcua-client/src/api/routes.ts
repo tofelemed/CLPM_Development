@@ -327,6 +327,61 @@ export function createApiRoutes(opcuaClient: OPCUAClient, logger: Logger): Route
     }
   });
 
+  // Connection testing endpoint
+  router.post('/test-connection', async (req: Request, res: Response) => {
+    const apiReq = req as ApiRequest;
+    try {
+      const serverConfig = req.body;
+      
+      if (!serverConfig.endpointUrl) {
+        return res.status(400).json({ error: 'endpointUrl is required' });
+      }
+
+      // Test connection by trying to create a temporary connection
+      const success = await apiReq.opcuaClient.testConnection(serverConfig);
+      
+      res.json({ 
+        success: success,
+        message: success ? 'Connection test successful' : 'Connection test failed'
+      });
+    } catch (error: any) {
+      apiReq.logger.error({ error, serverConfig: req.body }, 'Connection test failed');
+      res.json({ 
+        success: false,
+        message: error.message || 'Connection test failed'
+      });
+    }
+  });
+
+  // Connection control endpoints
+  router.post('/connections/:serverId/connect', async (req: Request, res: Response) => {
+    const apiReq = req as ApiRequest;
+    try {
+      const { serverId } = req.params;
+      await apiReq.opcuaClient.connectServer(serverId);
+      
+      apiReq.logger.info({ serverId }, 'Manual connect request');
+      res.json({ success: true, message: 'Connection initiated' });
+    } catch (error: any) {
+      apiReq.logger.error({ error, serverId: req.params.serverId }, 'Failed to connect server');
+      res.status(500).json({ error: error.message || 'Failed to connect server' });
+    }
+  });
+
+  router.post('/connections/:serverId/disconnect', async (req: Request, res: Response) => {
+    const apiReq = req as ApiRequest;
+    try {
+      const { serverId } = req.params;
+      await apiReq.opcuaClient.disconnectServer(serverId);
+      
+      apiReq.logger.info({ serverId }, 'Manual disconnect request');
+      res.json({ success: true, message: 'Disconnection initiated' });
+    } catch (error: any) {
+      apiReq.logger.error({ error, serverId: req.params.serverId }, 'Failed to disconnect server');
+      res.status(500).json({ error: error.message || 'Failed to disconnect server' });
+    }
+  });
+
   // Certificate management endpoints
   router.get('/certificates/trusted', async (req: Request, res: Response) => {
     const apiReq = req as ApiRequest;

@@ -295,7 +295,7 @@ export function sanitizeConfig(config: any): any {
  */
 export function validateEnvironment(): { valid: boolean; errors: string[] } {
   const errors: string[] = [];
-  const required = ['NODE_ENV', 'PORT'];
+  const required = ['PORT'];  // NODE_ENV is optional, has defaults
   
   for (const envVar of required) {
     if (!process.env[envVar]) {

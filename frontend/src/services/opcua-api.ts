@@ -13,7 +13,7 @@ import {
 } from '../types/opcua';
 
 // API Configuration
-const OPCUA_API_BASE = import.meta.env.VITE_OPCUA_API_BASE || '/opcua-direct';
+const OPCUA_API_BASE = import.meta.env.VITE_OPCUA_API_BASE || 'http://localhost:3002';
 
 // Create axios instance with common configuration
 const api = axios.create({
@@ -142,10 +142,10 @@ export class OPCUAApiService {
   }
 
   static async readNodeValue(serverId: string, nodeId: string): Promise<any> {
-    const response = await api.get(`/api/v1/nodes/${serverId}/read`, {
-      params: { nodeId }
+    const response = await api.post(`/api/v1/nodes/${serverId}/read`, {
+      nodeIds: [nodeId]
     });
-    return response.data;
+    return response.data[0]; // Return first result since we're reading single node
   }
 
   static async readMultipleNodes(serverId: string, nodeIds: string[]): Promise<any[]> {

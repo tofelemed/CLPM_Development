@@ -149,6 +149,8 @@ async function main() {
       process.exit(1);
     }
 
+    logger.info('Environment validation passed');
+
     // Create configuration
     const config = createClientConfig();
     logger.info({ 
@@ -231,8 +233,12 @@ async function main() {
       metricsPort: metricsConfig.port
     }, 'CLPM OPC UA Client started successfully');
 
-  } catch (error) {
-    logger.fatal({ error }, 'Failed to start OPC UA client');
+  } catch (error: any) {
+    logger.fatal({ 
+      error: error.message,
+      stack: error.stack 
+    }, 'Failed to start OPC UA client');
+    console.error('Startup error:', error);
     process.exit(1);
   }
 }
@@ -245,4 +251,4 @@ if (import.meta.url === `file://${process.argv[1]}`) {
   });
 }
 
-export { OPCUAClient, createClientConfig, createLogger };
+export { OPCUAClient, createClientConfig, createLogger, main };

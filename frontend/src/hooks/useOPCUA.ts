@@ -86,7 +86,7 @@ export const useOPCUAConnections = (refreshInterval = 5000) => {
   const [connections, setConnections] = useState<ConnectionStatus[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<number>();
 
   const loadConnections = useCallback(async () => {
     try {
@@ -108,7 +108,7 @@ export const useOPCUAConnections = (refreshInterval = 5000) => {
       await OPCUAApiService.connectToServer(serverId);
       // Update connection status optimistically
       setConnections(prev => prev.map(c => 
-        c.serverId === serverId 
+        c.id === serverId 
           ? { ...c, status: 'connecting' as const }
           : c
       ));
@@ -126,7 +126,7 @@ export const useOPCUAConnections = (refreshInterval = 5000) => {
       await OPCUAApiService.disconnectFromServer(serverId);
       // Update connection status optimistically
       setConnections(prev => prev.map(c => 
-        c.serverId === serverId 
+        c.id === serverId 
           ? { ...c, status: 'disconnected' as const }
           : c
       ));
@@ -168,7 +168,7 @@ export const useOPCUAHealth = (refreshInterval = 10000) => {
   const [health, setHealth] = useState<HealthStatus | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout>();
+  const intervalRef = useRef<number>();
 
   const loadHealth = useCallback(async () => {
     try {

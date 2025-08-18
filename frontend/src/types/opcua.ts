@@ -34,16 +34,22 @@ export interface ServerConfig {
 }
 
 export interface ConnectionStatus {
-  serverId: string;
+  id: string;
   status: 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
-  endpoint: string;
+  name: string;
+  endpointUrl: string;
+  securityMode: string;
+  securityPolicy: string;
   lastConnected?: Date;
-  lastError?: string;
+  errorMessage?: string;
   reconnectAttempts: number;
-  activeSessions: number;
-  monitoredItems: number;
-  redundantActive: boolean;
-  connectionQuality: 'good' | 'uncertain' | 'bad';
+  monitoredItemsCount: number;
+  requestedSessionTimeout: number;
+  requestedPublishingInterval: number;
+  requestedLifetimeCount: number;
+  requestedMaxKeepAliveCount: number;
+  maxNotificationsPerPublish: number;
+  priority: number;
 }
 
 export interface LoopSubscription {

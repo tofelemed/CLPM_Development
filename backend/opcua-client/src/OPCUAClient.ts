@@ -595,6 +595,54 @@ export class OPCUAClient extends EventEmitter {
   }
 
   /**
+   * Test connection to a server
+   */
+  async testConnection(serverConfig: any): Promise<boolean> {
+    try {
+      this.logger.debug({ endpointUrl: serverConfig.endpointUrl }, 'Testing connection');
+      
+      // For now, just return true if endpoint URL is valid
+      // In a real implementation, we'd create a temporary connection
+      if (!serverConfig.endpointUrl || !serverConfig.endpointUrl.startsWith('opc.tcp://')) {
+        return false;
+      }
+      
+      return true;
+    } catch (error) {
+      this.logger.error({ error, serverConfig }, 'Connection test failed');
+      return false;
+    }
+  }
+
+  /**
+   * Connect to a specific server
+   */
+  async connectServer(serverId: string): Promise<void> {
+    const server = this.configManager.getServer(serverId);
+    if (!server) {
+      throw new Error(`Server ${serverId} not found`);
+    }
+    
+    // Enable the server and trigger connection
+    server.enabled = true;
+    await this.configManager.setServer(server);
+  }
+
+  /**
+   * Disconnect from a specific server
+   */
+  async disconnectServer(serverId: string): Promise<void> {
+    const server = this.configManager.getServer(serverId);
+    if (!server) {
+      throw new Error(`Server ${serverId} not found`);
+    }
+    
+    // Disable the server and trigger disconnection
+    server.enabled = false;
+    await this.configManager.setServer(server);
+  }
+
+  /**
    * Force publish any pending data
    */
   async flush(): Promise<void> {

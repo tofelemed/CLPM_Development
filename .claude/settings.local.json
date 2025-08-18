@@ -10,7 +10,17 @@
       "Bash(npm run dev:*)",
       "Bash(docker-compose:*)",
       "Bash(npm run build:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(PORT=3002 npm run dev)",
+      "Bash(set NODE_ENV=development)",
+      "Bash(set PORT=3002)",
+      "Bash(dir config)",
+      "Bash(npm run start:*)",
+      "Bash(timeout:*)",
+      "Bash(tsx:*)",
+      "Bash(PORT=3002 node debug-startup.js)",
+      "Bash(pg_isready:*)",
+      "Bash(DATABASE_URL=postgresql://clpm:clpm_pwd@localhost:5432/clpm npm start)"
     ],
     "deny": []
   }

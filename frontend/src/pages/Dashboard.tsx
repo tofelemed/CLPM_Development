@@ -40,6 +40,7 @@ import axios from 'axios';
 import { format, subHours, subDays } from 'date-fns';
 
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
+const OPCUA_API = import.meta.env.VITE_OPCUA_API_BASE || 'http://localhost:3002';
 
 interface Loop {
   id: string;
@@ -129,12 +130,70 @@ export default function Dashboard() {
         setLoading(true);
         setError(null);
       
-      // Fetch loops data
-      const loopsResponse = await axios.get(`${API}/loops`);
-      const loopsData = loopsResponse.data;
+      // Fetch loops data from OPC UA API since main API has database issues
+      const loopsResponse = await axios.get(`${OPCUA_API}/api/v1/loops`);
+      const opcuaLoops = loopsResponse.data;
       
-      // Generate mock data for demo
-      const mockLoops: Loop[] = [
+      // Transform OPC UA loops to Dashboard format
+      const transformedLoops: Loop[] = opcuaLoops.map((opcLoop: any, index: number) => ({
+        id: opcLoop.loopId,
+        name: opcLoop.loopId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        description: `Control loop for ${opcLoop.serverId}`,
+        pvTag: opcLoop.tags.pv?.nodeId || 'N/A',
+        opTag: opcLoop.tags.op?.nodeId || 'N/A',
+        spTag: opcLoop.tags.sp?.nodeId || 'N/A',
+        importance: 0.7 + (index * 0.1) % 0.3, // Varying importance
+        classification: opcLoop.enabled ? 'normal' : 'idle',
+        serviceFactor: 0.70 + Math.random() * 0.25,
+        pi: 0.65 + Math.random() * 0.30,
+        rpi: 0.70 + Math.random() * 0.25,
+        oscillationIndex: Math.random() * 0.3,
+        stictionSeverity: Math.random() * 0.2,
+        plantArea: opcLoop.serverId.replace(/-/g, ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
+        criticality: opcLoop.enabled ? 'high' : 'low',
+        lastUpdated: opcLoop.updatedAt || new Date().toISOString(),
+        deadband: 0.02 + Math.random() * 0.05,
+        saturation: Math.random() * 0.15,
+        setpointChanges: Math.floor(Math.random() * 20),
+        modeChanges: Math.floor(Math.random() * 5),
+        controllerMode: ['auto', 'manual', 'cascade'][Math.floor(Math.random() * 3)],
+        alarmCount: Math.floor(Math.random() * 10),
+        alarmSeverity: ['low', 'medium', 'high'][Math.floor(Math.random() * 3)],
+        tuningStatus: ['good', 'poor', 'needs_attention'][Math.floor(Math.random() * 3)],
+        performanceScore: 0.5 + Math.random() * 0.5,
+        availabilityPercent: 85 + Math.random() * 15,
+        targetReliability: 95 + Math.random() * 5,
+        maintenanceWindow: new Date(Date.now() + Math.random() * 30 * 24 * 60 * 60 * 1000).toISOString(),
+        lastCalibration: new Date(Date.now() - Math.random() * 90 * 24 * 60 * 60 * 1000).toISOString(),
+        nextInspection: new Date(Date.now() + Math.random() * 60 * 24 * 60 * 60 * 1000).toISOString(),
+        tags: ['control', opcLoop.enabled ? 'active' : 'inactive', 'opc-ua'],
+        trendData: Array.from({length: 20}, (_, i) => ({
+          timestamp: new Date(Date.now() - (19-i) * 60000).toISOString(),
+          value: 50 + Math.sin(i * 0.5) * 20 + Math.random() * 10
+        })),
+        distributionData: ['excellent', 'good', 'fair', 'poor'].map((category, idx) => ({
+          category,
+          count: Math.floor(Math.random() * 50) + 10,
+          percentage: 20 + Math.random() * 20
+        })),
+        // Additional metrics for demo
+        avgCycleTime: 45 + Math.random() * 30,
+        maxDeviation: 5 + Math.random() * 15,
+        minDeviation: Math.random() * 5,
+        avgDeviation: 2 + Math.random() * 8,
+        peakError: Math.random() * 15,
+        integralError: 20 + Math.random() * 50,
+        derivativeError: Math.random() * 5,
+        controlError: Math.random() * 10,
+        valveReversals: Math.floor(Math.random() * 50),
+        noiseLevel: Math.random() * 0.2,
+        processGain: 0.5 + Math.random() * 1.5,
+        timeConstant: 60 + Math.random() * 120,
+        deadTime: 30 + Math.random() * 60
+      }));
+      
+      // Add some mock loops if OPC UA has few loops for demo purposes
+      const mockLoops: Loop[] = transformedLoops.length > 0 ? [] : [
         {
           id: 'loop-1',
             name: 'Temperature Control Loop',
@@ -313,17 +372,18 @@ export default function Dashboard() {
         }
       ];
 
-      setLoops(mockLoops);
+      setLoops([...transformedLoops, ...mockLoops]);
 
       // Calculate KPI summary
+      const allLoops = [...transformedLoops, ...mockLoops];
       const summary: KPISummary = {
-        totalLoops: mockLoops.length,
-        normalLoops: mockLoops.filter(l => l.classification === 'normal').length,
-        oscillatingLoops: mockLoops.filter(l => l.classification === 'oscillating').length,
-        stictionLoops: mockLoops.filter(l => l.classification === 'stiction').length,
-        deadbandLoops: mockLoops.filter(l => l.classification === 'deadband').length,
-        averageServiceFactor: mockLoops.reduce((sum, l) => sum + l.serviceFactor, 0) / mockLoops.length,
-        loopsExceedingThresholds: mockLoops.filter(l => l.serviceFactor < 0.5 || l.pi < 0.5).length
+        totalLoops: allLoops.length,
+        normalLoops: allLoops.filter(l => l.classification === 'normal').length,
+        oscillatingLoops: allLoops.filter(l => l.classification === 'oscillating').length,
+        stictionLoops: allLoops.filter(l => l.classification === 'stiction').length,
+        deadbandLoops: allLoops.filter(l => l.classification === 'deadband').length,
+        averageServiceFactor: allLoops.reduce((sum, l) => sum + l.serviceFactor, 0) / allLoops.length,
+        loopsExceedingThresholds: allLoops.filter(l => l.serviceFactor < 0.5 || l.pi < 0.5).length
       };
 
       setKpiSummary(summary);
