@@ -7,6 +7,7 @@ import { DataModule } from './data/data.module';
 import { KpiModule } from './kpi/kpi.module';
 import { DiagnosticsModule } from './diagnostics/diagnostics.module';
 import { AuthModule } from './auth/auth.module';
+import { OpcuaProxyModule } from './opcua/opcua-proxy.module';
 import { JwtAuthGuard } from './auth/jwt.guard';
 import { RolesGuard } from './auth/roles.guard';
 
@@ -42,7 +43,8 @@ import { RolesGuard } from './auth/roles.guard';
     LoopsModule,
     DataModule,
     KpiModule,
-    DiagnosticsModule
+    DiagnosticsModule,
+    OpcuaProxyModule
   ],
   providers: [
     // Temporarily disabled for development

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import LoopConfiguration from '../components/LoopConfiguration';
 
-const API = 'http://localhost:8080/api/v1';
+const API = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
 
 interface Loop {
   id: string;

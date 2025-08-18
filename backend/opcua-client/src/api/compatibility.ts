@@ -1,6 +1,8 @@
 import { Router, Request, Response } from 'express';
 import { Logger } from 'pino';
+import { MessageSecurityMode, SecurityPolicy } from 'node-opcua';
 import { OPCUAClient } from '../OPCUAClient.js';
+import { ServerConfig } from '../types/index.js';
 
 interface CompatibilityRequest extends Request {
   opcuaClient: OPCUAClient;
@@ -31,6 +33,22 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
       const servers = compatReq.opcuaClient.getServers();
       const connectionStatuses = compatReq.opcuaClient.getMetrics().connections;
       
+      // Reverse mapping from OPC UA enums to frontend strings
+      const securityPolicyToFrontend: { [key: string]: string } = {
+        [SecurityPolicy.None]: 'None',
+        [SecurityPolicy.Basic128Rsa15]: 'Basic128Rsa15',
+        [SecurityPolicy.Basic256]: 'Basic256',
+        [SecurityPolicy.Basic256Sha256]: 'Basic256Sha256',
+        [SecurityPolicy.Aes128_Sha256_RsaOaep]: 'Aes128Sha256RsaOaep',
+        [SecurityPolicy.Aes256_Sha256_RsaPss]: 'Aes256Sha256RsaPss'
+      };
+      
+      const securityModeToFrontend: { [key: string]: string } = {
+        [MessageSecurityMode.None]: 'None',
+        [MessageSecurityMode.Sign]: 'Sign',
+        [MessageSecurityMode.SignAndEncrypt]: 'SignAndEncrypt'
+      };
+      
       // Transform our server configs to frontend-expected format
       const connections = servers.map(server => {
         const status = Array.isArray(connectionStatuses) 
@@ -41,8 +59,8 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
           id: server.id,
           name: server.name || server.id,
           endpointUrl: server.endpointUrl,
-          securityMode: server.securityMode,
-          securityPolicy: server.securityPolicy,
+          securityMode: securityModeToFrontend[server.securityMode] || 'None',
+          securityPolicy: securityPolicyToFrontend[server.securityPolicy] || 'None',
           username: server.username,
           // Don't expose password
           status: status?.status || 'disconnected',
@@ -103,13 +121,30 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
     try {
       const connectionData = req.body;
       
+      // Map frontend security policy names to OPC UA enums
+      const securityPolicyMap: { [key: string]: SecurityPolicy } = {
+        'None': SecurityPolicy.None,
+        'Basic128Rsa15': SecurityPolicy.Basic128Rsa15,
+        'Basic256': SecurityPolicy.Basic256,
+        'Basic256Sha256': SecurityPolicy.Basic256Sha256,
+        'Aes128Sha256RsaOaep': SecurityPolicy.Aes128_Sha256_RsaOaep,
+        'Aes256Sha256RsaPss': SecurityPolicy.Aes256_Sha256_RsaPss
+      };
+      
+      // Map frontend security mode names to OPC UA enums
+      const securityModeMap: { [key: string]: MessageSecurityMode } = {
+        'None': MessageSecurityMode.None,
+        'Sign': MessageSecurityMode.Sign,
+        'SignAndEncrypt': MessageSecurityMode.SignAndEncrypt
+      };
+      
       // Transform frontend format to our server config format
       const serverConfig = {
         id: connectionData.name.toLowerCase().replace(/\s+/g, '-'), // Generate ID from name
         name: connectionData.name,
         endpointUrl: connectionData.endpointUrl,
-        securityPolicy: connectionData.securityPolicy || 'None',
-        securityMode: connectionData.securityMode || 'None',
+        securityPolicy: securityPolicyMap[connectionData.securityPolicy] || SecurityPolicy.None,
+        securityMode: securityModeMap[connectionData.securityMode] || MessageSecurityMode.None,
         userAuthMethod: connectionData.username ? 'username' as const : 'anonymous' as const,
         username: connectionData.username,
         password: connectionData.password,
@@ -126,7 +161,7 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
         enabled: true
       };
 
-      await compatReq.opcuaClient.setServer(serverConfig);
+      await compatReq.opcuaClient.setServer(serverConfig as unknown as ServerConfig);
       
       compatReq.logger.info({ serverId: serverConfig.id }, 'Connection created via compatibility API');
       res.status(201).json({ 
@@ -147,13 +182,30 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
       const { connectionId } = req.params;
       const connectionData = req.body;
       
+      // Map frontend security policy names to OPC UA enums
+      const securityPolicyMap: { [key: string]: SecurityPolicy } = {
+        'None': SecurityPolicy.None,
+        'Basic128Rsa15': SecurityPolicy.Basic128Rsa15,
+        'Basic256': SecurityPolicy.Basic256,
+        'Basic256Sha256': SecurityPolicy.Basic256Sha256,
+        'Aes128Sha256RsaOaep': SecurityPolicy.Aes128_Sha256_RsaOaep,
+        'Aes256Sha256RsaPss': SecurityPolicy.Aes256_Sha256_RsaPss
+      };
+      
+      // Map frontend security mode names to OPC UA enums
+      const securityModeMap: { [key: string]: MessageSecurityMode } = {
+        'None': MessageSecurityMode.None,
+        'Sign': MessageSecurityMode.Sign,
+        'SignAndEncrypt': MessageSecurityMode.SignAndEncrypt
+      };
+      
       // Transform frontend format to our server config format
       const serverConfig = {
         id: connectionId,
         name: connectionData.name,
         endpointUrl: connectionData.endpointUrl,
-        securityPolicy: connectionData.securityPolicy || 'None',
-        securityMode: connectionData.securityMode || 'None',
+        securityPolicy: securityPolicyMap[connectionData.securityPolicy] || SecurityPolicy.None,
+        securityMode: securityModeMap[connectionData.securityMode] || MessageSecurityMode.None,
         userAuthMethod: connectionData.username ? 'username' as const : 'anonymous' as const,
         username: connectionData.username,
         password: connectionData.password,
@@ -170,7 +222,7 @@ export function createCompatibilityRoutes(opcuaClient: OPCUAClient, logger: Logg
         enabled: true
       };
 
-      await compatReq.opcuaClient.setServer(serverConfig);
+      await compatReq.opcuaClient.setServer(serverConfig as unknown as ServerConfig);
       
       compatReq.logger.info({ serverId: connectionId }, 'Connection updated via compatibility API');
       res.json({ 

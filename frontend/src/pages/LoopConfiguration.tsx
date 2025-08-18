@@ -21,7 +21,6 @@ import {
   Chip,
   Tabs,
   Tab,
-  Dialog,
   DialogTitle,
   DialogContent,
   DialogActions,
@@ -45,7 +44,8 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import { AlertTriangle, Gauge, Database } from 'lucide-react';
-import OPCUATagBrowser from '../components/OPCUATagBrowser';
+import { TagBrowser } from '../components/opcua/TagBrowser';
+import { Dialog } from '../components/ui/dialog';
 
 export default function LoopConfiguration() {
   const [defaultSamplingInterval, setDefaultSamplingInterval] = React.useState(1000);
@@ -124,8 +124,9 @@ export default function LoopConfiguration() {
     }
   };
 
-  const handleTagSelect = (tag: any) => {
-    if (selectedTagType) {
+  const handleTagSelect = (tags: any[]) => {
+    if (selectedTagType && tags.length > 0) {
+      const tag = tags[0]; // Take the first selected tag
       setFormData(prev => ({
         ...prev,
         tags: {
@@ -588,7 +589,7 @@ export default function LoopConfiguration() {
       )}
 
       {/* Loop Dialog */}
-      <Dialog open={showLoopDialog} onClose={() => setShowLoopDialog(false)} maxWidth="lg" fullWidth>
+      <Dialog open={showLoopDialog} onClose={() => setShowLoopDialog(false)} maxWidth="lg">
         <DialogTitle>
           {editingLoop ? 'Edit Loop' : 'Add New Loop'}
         </DialogTitle>
@@ -762,7 +763,7 @@ export default function LoopConfiguration() {
       </Dialog>
 
       {/* CSV Import Dialog */}
-      <Dialog open={csvImportDialog} onClose={() => setCsvImportDialog(false)} maxWidth="md" fullWidth>
+      <Dialog open={csvImportDialog} onClose={() => setCsvImportDialog(false)} maxWidth="md">
         <DialogTitle>Import Loops from CSV</DialogTitle>
         <DialogContent>
           <Alert severity="info" sx={{ mb: 2 }}>
@@ -792,16 +793,23 @@ export default function LoopConfiguration() {
         </DialogActions>
       </Dialog>
 
-      {/* Tag Browser */}
-      <OPCUATagBrowser
+      {/* Tag Browser Dialog */}
+      <Dialog
         open={showTagBrowser}
         onClose={() => {
           setShowTagBrowser(false);
           setSelectedTagType(null);
         }}
-        onTagSelect={handleTagSelect}
         title={`Select ${selectedTagType} Tag`}
-      />
+        maxWidth="xl"
+      >
+        <TagBrowser
+          serverId={formData.connectionId}
+          onTagSelect={handleTagSelect}
+          multiSelect={false}
+          showValues={false}
+        />
+      </Dialog>
     </Box>
   );
 }

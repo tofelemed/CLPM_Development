@@ -4,13 +4,13 @@ import { ServerConfig, LoopSubscription, TagSubscription } from '../types/index.
 /**
  * Validate server configuration
  */
-export function validateServerConfig(config: any): ServerConfig {
+export function validateServerConfig(config: any, requireId: boolean = true): ServerConfig {
   if (!config || typeof config !== 'object') {
     throw new Error('Server configuration must be an object');
   }
 
   // Required fields
-  if (!config.id || typeof config.id !== 'string') {
+  if (requireId && (!config.id || typeof config.id !== 'string')) {
     throw new Error('Server ID is required and must be a string');
   }
 
@@ -81,7 +81,7 @@ export function validateServerConfig(config: any): ServerConfig {
 
   // Build validated configuration
   const validatedConfig: ServerConfig = {
-    id: config.id.trim(),
+    id: config.id ? config.id.trim() : '', // Allow empty ID for creation
     name: config.name.trim(),
     endpointUrl: config.endpointUrl.trim(),
     securityPolicy: config.securityPolicy || SecurityPolicy.None,

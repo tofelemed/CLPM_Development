@@ -170,28 +170,43 @@ export class ConnectionManager extends EventEmitter {
         endpoint: serverConfig.endpointUrl 
       }, 'Successfully connected to OPC UA server');
 
-    } catch (error) {
+    } catch (error: any) {
+      // Check for specific assertion errors that indicate server compatibility issues
+      let errorMessage = error.message || 'Unknown connection error';
+      let isCompatibilityIssue = false;
+
+      if (error.code === 'ERR_ASSERTION' || 
+          errorMessage.includes('block_info.position + block_info.length === block.length') ||
+          errorMessage.includes('import_assert3.default')) {
+        errorMessage = 'Server compatibility issue: The OPC UA server sends malformed messages that are incompatible with the node-opcua library. Try different security settings or contact the server vendor for OPC UA compliance updates.';
+        isCompatibilityIssue = true;
+      }
+
       this.updateConnectionStatus(serverId, {
         status: 'error',
-        lastError: error.message,
+        lastError: errorMessage,
         connectionQuality: 'bad'
       });
 
       this.emit('connectionFailed', { 
         serverId, 
         endpoint: serverConfig.endpointUrl, 
-        error 
+        error: { ...error, message: errorMessage, isCompatibilityIssue }
       });
 
       this.logger.error({ 
         error, 
         serverId, 
-        endpoint: serverConfig.endpointUrl 
-      }, 'Failed to connect to OPC UA server');
+        endpoint: serverConfig.endpointUrl,
+        isCompatibilityIssue
+      }, isCompatibilityIssue ? 'Server compatibility issue detected' : 'Failed to connect to OPC UA server');
 
-      // Schedule reconnection
-      await this.scheduleReconnection(serverId);
-      throw error;
+      // Don't schedule reconnection for compatibility issues
+      if (!isCompatibilityIssue) {
+        await this.scheduleReconnection(serverId);
+      }
+      
+      throw new Error(errorMessage);
     }
   }
 

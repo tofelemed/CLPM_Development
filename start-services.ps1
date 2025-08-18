@@ -71,13 +71,9 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend/aggreg
 Write-Host "Starting KPI Worker..." -ForegroundColor Yellow
 Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend/kpi-worker; npm install; npm start"
 
-# Mock OPC UA Server
-Write-Host "Starting Mock OPC UA Server..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend/mock-opcua-server; npm install; npm start"
-
 # OPC UA Client
 Write-Host "Starting OPC UA Client..." -ForegroundColor Yellow
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend/opcua-client; npm install; `$env:PORT=3001; npm run dev"
+Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd backend/opcua-client; npm install; `$env:PORT=4842; npm run dev"
 
 # Diagnostics Service
 Write-Host "Starting Diagnostics Service..." -ForegroundColor Yellow
@@ -85,7 +81,7 @@ Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd python-service
 
 # Wait for OPC UA Client
 Start-Sleep -Seconds 5
-Wait-ForService -Port 3001 -ServiceName "OPC UA Client"
+Wait-ForService -Port 4842 -ServiceName "OPC UA Client"
 
 # Wait for diagnostics service
 Start-Sleep -Seconds 5
@@ -102,6 +98,6 @@ Wait-ForService -Port 5173 -ServiceName "Frontend"
 Write-Host "All services started!" -ForegroundColor Green
 Write-Host "Frontend: http://localhost:5173" -ForegroundColor Cyan
 Write-Host "API Gateway: http://localhost:8080" -ForegroundColor Cyan
-Write-Host "OPC UA Client: http://localhost:3001" -ForegroundColor Cyan
+Write-Host "OPC UA Client: http://localhost:4842" -ForegroundColor Cyan
 Write-Host "Keycloak: http://localhost:8081" -ForegroundColor Cyan
 Write-Host "RabbitMQ Management: http://localhost:15672" -ForegroundColor Cyan

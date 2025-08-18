@@ -16,7 +16,7 @@ import {
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import axios from 'axios';
 
-const API = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8080/api/v1';
+const API = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
 
 interface APCAttainment {
   timestamp: string;

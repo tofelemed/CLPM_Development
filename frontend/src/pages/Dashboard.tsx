@@ -39,7 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { format, subHours, subDays } from 'date-fns';
 
-const API = (import.meta as any).env.VITE_API_BASE || 'http://localhost:8080/api/v1';
+const API = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
 
 interface Loop {
   id: string;

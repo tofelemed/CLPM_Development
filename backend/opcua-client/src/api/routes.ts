@@ -99,7 +99,13 @@ export function createApiRoutes(opcuaClient: OPCUAClient, logger: Logger): Route
   router.post('/servers', async (req: Request, res: Response) => {
     const apiReq = req as ApiRequest;
     try {
-      const serverConfig = validateServerConfig(req.body);
+      // Generate a unique ID for new servers
+      const serverId = req.body.id || `server_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const serverConfig = validateServerConfig({ ...req.body, id: serverId }, false);
+      
+      // Ensure the generated ID is set
+      serverConfig.id = serverId;
+      
       await apiReq.opcuaClient.setServer(serverConfig);
       
       apiReq.logger.info({ serverId: serverConfig.id }, 'Server configuration created');

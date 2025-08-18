@@ -13,7 +13,7 @@ import {
   Clock,
   Activity
 } from 'lucide-react';
-import OPCUATagBrowser from './OPCUATagBrowser';
+import { TagBrowser } from './opcua/TagBrowser';
 
 interface Loop {
   id: string;
@@ -151,7 +151,7 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
   const loadLoops = async () => {
     try {
       setLoading(true);
-      const response = await fetch('http://localhost:8080/api/v1/loops', {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE}/loops`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -173,7 +173,7 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       const configs: {[key: string]: LoopConfig} = {};
       
       for (const loop of loops) {
-        const response = await fetch(`http://localhost:8080/api/v1/loops/${loop.id}/config`, {
+        const response = await fetch(`${import.meta.env.VITE_API_BASE}/loops/${loop.id}/config`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -227,8 +227,8 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
     try {
       setLoading(true);
       const url = editingLoop 
-        ? `http://localhost:8080/api/v1/loops/${editingLoop.id}`
-        : 'http://localhost:8080/api/v1/loops';
+        ? `${import.meta.env.VITE_API_BASE}/loops/${editingLoop.id}`
+        : `${import.meta.env.VITE_API_BASE}/loops`;
       
       const method = editingLoop ? 'PUT' : 'POST';
       
@@ -273,7 +273,7 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
   const saveLoopConfig = async (loopId: string) => {
     try {
       const method = editingLoop ? 'PUT' : 'POST';
-      const response = await fetch(`http://localhost:8080/api/v1/loops/${loopId}/config`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE}/loops/${loopId}/config`, {
         method,
         headers: {
           'Content-Type': 'application/json',
@@ -357,7 +357,7 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       setLoading(true);
       
       // Delete from main API
-      const response = await fetch(`http://localhost:8080/api/v1/loops/${loopId}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE}/loops/${loopId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -943,12 +943,11 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       </div>
 
       {/* Tag Browser Modal */}
-      <OPCUATagBrowser
-        open={tagBrowserOpen}
-        onClose={() => setTagBrowserOpen(false)}
+      <TagBrowser
+        serverId={formData.opcua_server_id}
         onTagSelect={handleTagSelect}
-        selectedTag={null}
-        title={`Select ${currentTagType.toUpperCase()} Tag`}
+        multiSelect={false}
+        showValues={false}
       />
     </div>
   );
