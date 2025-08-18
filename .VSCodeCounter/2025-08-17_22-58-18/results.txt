@@ -1,0 +1,104 @@
+Date : 2025-08-17 22:58:18
+Directory : l:\Office\CLPM\clpm-app-latest\backend
+Total : 48 files,  3104 codes, 156 comments, 619 blanks, all 3879 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| JavaScript         |         13 |      1,969 |        142 |        398 |      2,509 |
+| TypeScript         |         23 |        650 |         14 |        107 |        771 |
+| Markdown           |          1 |        304 |          0 |        102 |        406 |
+| JSON               |          5 |        122 |          0 |          5 |        127 |
+| Docker             |          5 |         43 |          0 |          6 |         49 |
+| JSON with Comments |          1 |         16 |          0 |          1 |         17 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                         | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                            |         48 |      3,104 |        156 |        619 |      3,879 |
+| aggregation                                                                                  |          4 |        289 |         22 |         62 |        373 |
+| aggregation (Files)                                                                          |          2 |         23 |          0 |          2 |         25 |
+| aggregation\src                                                                              |          2 |        266 |         22 |         60 |        348 |
+| api-gateway                                                                                  |         26 |        730 |         14 |        111 |        855 |
+| api-gateway (Files)                                                                          |          3 |         80 |          0 |          4 |         84 |
+| api-gateway\src                                                                              |         23 |        650 |         14 |        107 |        771 |
+| api-gateway\src (Files)                                                                      |          2 |         70 |          3 |          6 |         79 |
+| api-gateway\src\auth                                                                         |          5 |         69 |          1 |         12 |         82 |
+| api-gateway\src\data                                                                         |          3 |         47 |          0 |         11 |         58 |
+| api-gateway\src\diagnostics                                                                  |          3 |         52 |          0 |          9 |         61 |
+| api-gateway\src\kpi                                                                          |          3 |        288 |         10 |         46 |        344 |
+| api-gateway\src\loops                                                                        |          6 |        115 |          0 |         21 |        136 |
+| api-gateway\src\loops (Files)                                                                |          3 |         84 |          0 |         16 |        100 |
+| api-gateway\src\loops\dto                                                                    |          2 |         15 |          0 |          3 |         18 |
+| api-gateway\src\loops\entities                                                               |          1 |         16 |          0 |          2 |         18 |
+| api-gateway\src\shared                                                                       |          1 |          9 |          0 |          2 |         11 |
+| ingestion                                                                                    |          7 |        439 |         23 |         68 |        530 |
+| ingestion (Files)                                                                            |          2 |         23 |          0 |          2 |         25 |
+| ingestion\src                                                                                |          5 |        416 |         23 |         66 |        505 |
+| ingestion\src (Files)                                                                        |          4 |        313 |         16 |         48 |        377 |
+| ingestion\src\opc                                                                            |          1 |        103 |          7 |         18 |        128 |
+| kpi-worker                                                                                   |          4 |        413 |         28 |         91 |        532 |
+| kpi-worker (Files)                                                                           |          2 |         23 |          0 |          2 |         25 |
+| kpi-worker\src                                                                               |          2 |        390 |         28 |         89 |        507 |
+| mock-opcua-server                                                                            |          7 |      1,233 |         69 |        287 |      1,589 |
+| mock-opcua-server (Files)                                                                    |          4 |        432 |         14 |        129 |        575 |
+| mock-opcua-server\src                                                                        |          3 |        801 |         55 |        158 |      1,014 |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                                     | language           | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\Dockerfile                                | Docker             |          7 |          0 |          1 |          8 |
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\package.json                              | JSON               |         16 |          0 |          1 |         17 |
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\src\index.js                              | JavaScript         |        255 |         21 |         56 |        332 |
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\src\rabbit.js                             | JavaScript         |         11 |          1 |          4 |         16 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\Dockerfile                                | Docker             |         15 |          0 |          2 |         17 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\package.json                              | JSON               |         49 |          0 |          1 |         50 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\app.module.ts                         | TypeScript         |         49 |          3 |          2 |         54 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\auth.module.ts                   | TypeScript         |          9 |          0 |          2 |         11 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\jwt.guard.ts                     | TypeScript         |          4 |          0 |          2 |          6 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\jwt.strategy.ts                  | TypeScript         |         35 |          1 |          4 |         40 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\roles.decorator.ts               | TypeScript         |          4 |          0 |          1 |          5 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\roles.guard.ts                   | TypeScript         |         17 |          0 |          3 |         20 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\data\data.controller.ts               | TypeScript         |         20 |          0 |          3 |         23 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\data\data.module.ts                   | TypeScript         |          9 |          0 |          2 |         11 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\data\data.service.ts                  | TypeScript         |         18 |          0 |          6 |         24 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\diagnostics\diagnostics.controller.ts | TypeScript         |         29 |          0 |          4 |         33 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\diagnostics\diagnostics.module.ts     | TypeScript         |         11 |          0 |          2 |         13 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\diagnostics\diagnostics.service.ts    | TypeScript         |         12 |          0 |          3 |         15 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\kpi\kpi.controller.ts                 | TypeScript         |         46 |          0 |          5 |         51 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\kpi\kpi.module.ts                     | TypeScript         |          9 |          0 |          2 |         11 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\kpi\kpi.service.ts                    | TypeScript         |        233 |         10 |         39 |        282 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\dto\create-loop.dto.ts          | TypeScript         |         12 |          0 |          2 |         14 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\dto\update-loop.dto.ts          | TypeScript         |          3 |          0 |          1 |          4 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\entities\loop.entity.ts         | TypeScript         |         16 |          0 |          2 |         18 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\loops.controller.ts             | TypeScript         |         22 |          0 |          7 |         29 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\loops.module.ts                 | TypeScript         |         12 |          0 |          2 |         14 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\loops.service.ts                | TypeScript         |         50 |          0 |          7 |         57 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\main.ts                               | TypeScript         |         21 |          0 |          4 |         25 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\shared\pg.service.ts                  | TypeScript         |          9 |          0 |          2 |         11 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\tsconfig.json                             | JSON with Comments |         16 |          0 |          1 |         17 |
+| l:\Office\CLPM\clpm-app-latest\backend\ingestion\Dockerfile                                  | Docker             |          7 |          0 |          1 |          8 |
+| l:\Office\CLPM\clpm-app-latest\backend\ingestion\package.json                                | JSON               |         16 |          0 |          1 |         17 |
+| l:\Office\CLPM\clpm-app-latest\backend\ingestion\src\config.js                               | JavaScript         |          6 |          0 |          1 |          7 |
+| l:\Office\CLPM\clpm-app-latest\backend\ingestion\src\database.js                             | JavaScript         |        175 |          2 |         23 |        200 |
+| l:\Office\CLPM\clpm-app-latest\backend\ingestion\src\index.js                                | JavaScript         |        122 |         14 |         22 |        158 |
+| l:\Office\CLPM\clpm-app-latest\backend\ingestion\src\opc\uaClient.js                         | JavaScript         |        103 |          7 |         18 |        128 |
+| l:\Office\CLPM\clpm-app-latest\backend\ingestion\src\rabbit.js                               | JavaScript         |         10 |          0 |          2 |         12 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\Dockerfile                                 | Docker             |          7 |          0 |          1 |          8 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\package.json                               | JSON               |         16 |          0 |          1 |         17 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\src\index.js                               | JavaScript         |        379 |         27 |         85 |        491 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\src\rabbit.js                              | JavaScript         |         11 |          1 |          4 |         16 |
+| l:\Office\CLPM\clpm-app-latest\backend\mock-opcua-server\Dockerfile                          | Docker             |          7 |          0 |          1 |          8 |
+| l:\Office\CLPM\clpm-app-latest\backend\mock-opcua-server\README.md                           | Markdown           |        304 |          0 |        102 |        406 |
+| l:\Office\CLPM\clpm-app-latest\backend\mock-opcua-server\package.json                        | JSON               |         25 |          0 |          1 |         26 |
+| l:\Office\CLPM\clpm-app-latest\backend\mock-opcua-server\src\opcua-api.js                    | JavaScript         |        353 |         38 |         68 |        459 |
+| l:\Office\CLPM\clpm-app-latest\backend\mock-opcua-server\src\opcua-client.js                 | JavaScript         |        402 |         17 |         81 |        500 |
+| l:\Office\CLPM\clpm-app-latest\backend\mock-opcua-server\src\server.js                       | JavaScript         |         46 |          0 |          9 |         55 |
+| l:\Office\CLPM\clpm-app-latest\backend\mock-opcua-server\test-opcua.js                       | JavaScript         |         96 |         14 |         25 |        135 |
+| Total                                                                                        |                    |      3,104 |        156 |        619 |      3,879 |
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

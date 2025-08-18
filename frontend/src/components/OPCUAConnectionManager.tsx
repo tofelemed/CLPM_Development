@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
+import { 
   Dialog,
   DialogTitle,
   DialogContent,
@@ -113,7 +113,8 @@ interface OPCUAConnectionManagerProps {
   onClose: () => void;
 }
 
-const OPCUA_API_BASE = (import.meta as any).env.VITE_OPCUA_API_BASE || 'http://localhost:3001';
+// Use Vite proxy in dev to avoid CORS. opcua-client listens on 3002 by default
+const OPCUA_API_BASE = (import.meta as any).env.VITE_OPCUA_API_BASE || '/opcua2';
 
 const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, onClose }) => {
   const [connections, setConnections] = useState<OPCUAConnection[]>([]);
@@ -320,10 +321,10 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
         await axios.post(`${OPCUA_API_BASE}/connections`, connectionData);
       }
       
-      setShowAddForm(false);
-      setEditingConnection(null);
-      resetForm();
-      await loadConnections();
+        setShowAddForm(false);
+        setEditingConnection(null);
+        resetForm();
+        await loadConnections();
     } catch (error: any) {
       const operation = editingConnection ? 'update connection' : 'create connection';
       const context = `Connection: "${formData.name}", Endpoint: "${formData.endpointUrl}", Security: ${formData.securityMode}/${formData.securityPolicy}`;
@@ -340,7 +341,7 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
     try {
       setLoading(true);
       await axios.delete(`${OPCUA_API_BASE}/connections/${connectionId}`);
-      await loadConnections();
+        await loadConnections();
     } catch (error: any) {
       const context = `Connection ID: ${connectionId}, Name: "${connection?.name || 'Unknown'}"`;
       handleError('delete connection', error, context);
@@ -354,7 +355,7 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
     try {
       setLoading(true);
       await axios.post(`${OPCUA_API_BASE}/connections/${connectionId}/connect`);
-      await loadConnections();
+        await loadConnections();
     } catch (error: any) {
       const context = `Connection: "${connection?.name || 'Unknown'}", Endpoint: "${connection?.endpointUrl || 'Unknown'}", Security: ${connection?.securityMode}/${connection?.securityPolicy}`;
       handleError('connect to OPC UA server', error, context, connection);
@@ -436,7 +437,7 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
 
   const handleSelectEndpoint = (endpoint: EndpointInfo) => {
     setFormData(prev => ({
-      ...prev,
+          ...prev, 
       endpointUrl: endpoint.endpointUrl,
       securityMode: endpoint.securityMode,
       securityPolicy: endpoint.securityPolicy
@@ -478,7 +479,7 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
       const filePath = response.data.filePath;
       
       setFormData(prev => ({
-        ...prev,
+        ...prev, 
         [`${type === 'client' ? 'certificate' : type === 'private' ? 'privateKey' : type === 'trust' ? 'trustList' : 'revocationList'}Path`]: filePath
       }));
 
@@ -599,14 +600,14 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
             <Button
               variant="contained"
               startIcon={<AddIcon />}
-              onClick={() => setShowAddForm(true)}
+                  onClick={() => setShowAddForm(true)}
               size="large"
-            >
-              Add Connection
+                >
+                  Add Connection
             </Button>
           </Box>
 
-          {loading ? (
+              {loading ? (
             <Card>
               <CardContent>
                 <Box display="flex" flexDirection="column" alignItems="center" py={4}>
@@ -615,7 +616,7 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                 </Box>
               </CardContent>
             </Card>
-          ) : connections.length === 0 ? (
+              ) : connections.length === 0 ? (
             <Card>
               <CardContent>
                 <Box display="flex" flexDirection="column" alignItems="center" py={6}>
@@ -631,7 +632,7 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
             </Card>
           ) : (
             <Grid container spacing={2}>
-              {connections.map((connection) => (
+                  {connections.map((connection) => (
                 <Grid item xs={12} key={connection.id}>
                   <Card variant="outlined">
                     <CardContent>
@@ -673,9 +674,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                         <Box display="flex" gap={1}>
                           <Tooltip title="Test Connection">
                             <IconButton
-                              onClick={() => handleTest(connection.id)}
+                            onClick={() => handleTest(connection.id)}
                               disabled={loading}
-                            >
+                          >
                               <TestIcon />
                             </IconButton>
                           </Tooltip>
@@ -683,20 +684,20 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                           {connection.status === 'connected' ? (
                             <Tooltip title="Disconnect">
                               <IconButton
-                                onClick={() => handleDisconnect(connection.id)}
+                              onClick={() => handleDisconnect(connection.id)}
                                 disabled={loading}
                                 color="error"
-                              >
+                            >
                                 <DisconnectIcon />
                               </IconButton>
                             </Tooltip>
                           ) : (
                             <Tooltip title="Connect">
                               <IconButton
-                                onClick={() => handleConnect(connection.id)}
+                              onClick={() => handleConnect(connection.id)}
                                 disabled={loading}
                                 color="success"
-                              >
+                            >
                                 <ConnectIcon />
                               </IconButton>
                             </Tooltip>
@@ -704,16 +705,16 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                           
                           <Tooltip title="Edit">
                             <IconButton
-                              onClick={() => handleEdit(connection)}
+                            onClick={() => handleEdit(connection)}
                               disabled={loading}
-                            >
+                          >
                               <EditIcon />
                             </IconButton>
                           </Tooltip>
                           
                           <Tooltip title="Delete">
                             <IconButton
-                              onClick={() => handleDelete(connection.id)}
+                            onClick={() => handleDelete(connection.id)}
                               disabled={loading}
                               color="error"
                             >
@@ -738,34 +739,34 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                                 {testResults[connection.id].context}
                               </Typography>
                             )}
-                            {testResults[connection.id].details && (
+                          {testResults[connection.id].details && (
                               <Box mt={1}>
                                 <Typography variant="caption" component="pre" sx={{ whiteSpace: 'pre-wrap' }}>
                                   {JSON.stringify(testResults[connection.id].details, null, 2)}
                                 </Typography>
                               </Box>
-                            )}
-                            {testResults[connection.id].error && (
+                          )}
+                          {testResults[connection.id].error && (
                               <Typography variant="body2" sx={{ mt: 1 }}>
                                 {testResults[connection.id].error}
                               </Typography>
-                            )}
+                          )}
                           </Alert>
                         </Box>
                       )}
                     </CardContent>
                   </Card>
                 </Grid>
-              ))}
+                  ))}
             </Grid>
-          )}
+              )}
         </Box>
 
-        {/* Add/Edit Form */}
-        {showAddForm && (
+            {/* Add/Edit Form */}
+            {showAddForm && (
           <Paper sx={{ p: 3, mt: 3 }} elevation={2}>
             <Typography variant="h6" gutterBottom>
-              {editingConnection ? 'Edit Connection' : 'Add New Connection'}
+                  {editingConnection ? 'Edit Connection' : 'Add New Connection'}
             </Typography>
             <Divider sx={{ mb: 3 }} />
             
@@ -775,9 +776,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <TextField
                     fullWidth
                     label="Connection Name"
-                    value={formData.name}
-                    onChange={(e) => setFormData({...formData, name: e.target.value})}
-                    required
+                        value={formData.name}
+                        onChange={(e) => setFormData({...formData, name: e.target.value})}
+                        required
                     variant="outlined"
                   />
                 </Grid>
@@ -786,10 +787,10 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <TextField
                     fullWidth
                     label="Endpoint URL"
-                    value={formData.endpointUrl}
-                    onChange={(e) => setFormData({...formData, endpointUrl: e.target.value})}
-                    placeholder="opc.tcp://localhost:4840"
-                    required
+                        value={formData.endpointUrl}
+                        onChange={(e) => setFormData({...formData, endpointUrl: e.target.value})}
+                        placeholder="opc.tcp://localhost:4840"
+                        required
                     variant="outlined"
                   />
                 </Grid>
@@ -798,8 +799,8 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <TextField
                     fullWidth
                     label="Username"
-                    value={formData.username}
-                    onChange={(e) => setFormData({...formData, username: e.target.value})}
+                        value={formData.username}
+                        onChange={(e) => setFormData({...formData, username: e.target.value})}
                     variant="outlined"
                   />
                 </Grid>
@@ -808,9 +809,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <TextField
                     fullWidth
                     label="Password"
-                    type="password"
-                    value={formData.password}
-                    onChange={(e) => setFormData({...formData, password: e.target.value})}
+                        type="password"
+                        value={formData.password}
+                        onChange={(e) => setFormData({...formData, password: e.target.value})}
                     variant="outlined"
                   />
                 </Grid>
@@ -819,9 +820,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <FormControl fullWidth variant="outlined">
                     <InputLabel>Security Mode</InputLabel>
                     <Select
-                      value={formData.securityMode}
+                        value={formData.securityMode}
                       label="Security Mode"
-                      onChange={(e) => setFormData({...formData, securityMode: e.target.value})}
+                        onChange={(e) => setFormData({...formData, securityMode: e.target.value})}
                     >
                       <MenuItem value="None">
                         <Box>
@@ -860,9 +861,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <FormControl fullWidth variant="outlined">
                     <InputLabel>Security Policy</InputLabel>
                     <Select
-                      value={formData.securityPolicy}
+                        value={formData.securityPolicy}
                       label="Security Policy"
-                      onChange={(e) => setFormData({...formData, securityPolicy: e.target.value})}
+                        onChange={(e) => setFormData({...formData, securityPolicy: e.target.value})}
                     >
                       <MenuItem value="None">
                         <Box>
@@ -985,9 +986,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <TextField
                     fullWidth
                     label="Session Timeout (ms)"
-                    type="number"
-                    value={formData.requestedSessionTimeout}
-                    onChange={(e) => setFormData({...formData, requestedSessionTimeout: parseInt(e.target.value)})}
+                        type="number"
+                        value={formData.requestedSessionTimeout}
+                        onChange={(e) => setFormData({...formData, requestedSessionTimeout: parseInt(e.target.value)})}
                     variant="outlined"
                   />
                 </Grid>
@@ -996,9 +997,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <TextField
                     fullWidth
                     label="Publishing Interval (ms)"
-                    type="number"
-                    value={formData.requestedPublishingInterval}
-                    onChange={(e) => setFormData({...formData, requestedPublishingInterval: parseInt(e.target.value)})}
+                        type="number"
+                        value={formData.requestedPublishingInterval}
+                        onChange={(e) => setFormData({...formData, requestedPublishingInterval: parseInt(e.target.value)})}
                     variant="outlined"
                   />
                 </Grid>
@@ -1007,14 +1008,14 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                   <TextField
                     fullWidth
                     label="Priority"
-                    type="number"
-                    value={formData.priority}
-                    onChange={(e) => setFormData({...formData, priority: parseInt(e.target.value)})}
+                        type="number"
+                        value={formData.priority}
+                        onChange={(e) => setFormData({...formData, priority: parseInt(e.target.value)})}
                     variant="outlined"
-                  />
+                      />
                 </Grid>
 
-                {/* Certificate Settings */}
+                  {/* Certificate Settings */}
                 <Grid item xs={12}>
                   <Accordion>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
@@ -1067,9 +1068,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                             <TextField
                               fullWidth
                               label="Client Certificate"
-                              value={formData.certificatePath}
-                              onChange={(e) => setFormData({...formData, certificatePath: e.target.value})}
-                              placeholder="/path/to/client-cert.pem"
+                          value={formData.certificatePath}
+                          onChange={(e) => setFormData({...formData, certificatePath: e.target.value})}
+                          placeholder="/path/to/client-cert.pem"
                               variant="outlined"
                               size="small"
                             />
@@ -1079,7 +1080,7 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                               startIcon={<UploadIcon />}
                               size="small"
                             >
-                              <input
+                        <input
                                 type="file"
                                 accept=".pem,.crt,.cer,.der"
                                 onChange={(e) => handleCertificateUpload(e, 'client')}
@@ -1094,9 +1095,9 @@ const OPCUAConnectionManager: React.FC<OPCUAConnectionManagerProps> = ({ open, o
                             <TextField
                               fullWidth
                               label="Private Key"
-                              value={formData.privateKeyPath}
-                              onChange={(e) => setFormData({...formData, privateKeyPath: e.target.value})}
-                              placeholder="/path/to/client-key.pem"
+                          value={formData.privateKeyPath}
+                          onChange={(e) => setFormData({...formData, privateKeyPath: e.target.value})}
+                          placeholder="/path/to/client-key.pem"
                               variant="outlined"
                               size="small"
                             />

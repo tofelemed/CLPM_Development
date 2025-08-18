@@ -44,7 +44,8 @@ import axios from 'axios';
 
 
 
-const OPCUA_API_BASE = (import.meta as any).env.VITE_OPCUA_API_BASE || 'http://localhost:3001';
+// Use Vite proxy to avoid CORS in dev. Configure target in vite.config.ts
+const OPCUA_API_BASE = (import.meta as any).env.VITE_OPCUA_API_BASE || '/opcua2';
 
 export default function OPCConfig() {
   const [serverUrl, setServerUrl] = React.useState('opc.tcp://localhost:4840');

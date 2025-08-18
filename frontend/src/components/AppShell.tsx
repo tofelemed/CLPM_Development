@@ -20,7 +20,7 @@ import {
   Badge,
   Chip
 } from '@mui/material';
-import {
+import { 
   Menu as MenuIcon,
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
@@ -134,8 +134,8 @@ export default function AppShell({ children }: AppShellProps) {
           </List>
         </>
       )}
-    </div>
-  );
+  </div>
+);
 
   return (
     <Box sx={{ display: 'flex' }}>

@@ -122,10 +122,39 @@ services:
       - VITE_API_BASE=http://localhost:8080/api/v1
       - VITE_OIDC_ISSUER=http://localhost:8081/realms/clpm
 
-  mock-opcua:
-    build: ./backend/mock-opcua-server
+  opcua-client:
+    build: ./backend/opcua-client
+    environment:
+      - NODE_ENV=production
+      - PORT=4840
+      - METRICS_PORT=3001
+      - API_KEY=opcua-client-key
+      - JWT_SECRET=opcua-jwt-secret
+      - APPLICATION_NAME=CLPM OPC UA Client
+      - APPLICATION_URI=urn:clpm:opcua:client
+      - CERTIFICATE_DIR=/app/certificates
+      - AUTO_TRUST_UNKNOWN_CERTS=true
+      - DEFAULT_SAMPLING_INTERVAL=200
+      - MAX_SESSION_SUBSCRIPTIONS=1000
+      - CONNECTION_TIMEOUT_MS=30000
+      - RECONNECT_DELAY_MS=5000
+      - MAX_RECONNECT_ATTEMPTS=10
+      - HEALTH_CHECK_INTERVAL_MS=60000
+      - BATCH_SIZE=100
+      - BATCH_TIMEOUT_MS=5000
+      - MAX_QUEUE_SIZE=10000
+      - CORS_ORIGINS=*
     ports:
-      - "4841:4840"
+      - "4842:4840"
+      - "3001:3001"
+    volumes:
+      - opcua-certificates:/app/certificates
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4840/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
 volumes:
   db-data:
+  opcua-certificates:

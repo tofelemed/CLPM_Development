@@ -52,19 +52,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const verifyToken = async () => {
     try {
-      // For demo purposes, we'll simulate a user
+      // For demo purposes, we'll get the stored user data
       // In production, this would be an API call to verify the token
-      const mockUser: User = {
-        id: '1',
-        name: 'John Engineer',
-        email: 'john.engineer@company.com',
-        role: 'engineer'
-      };
-      
-      setUser(mockUser);
+      const storedUserData = localStorage.getItem('userData');
+      if (storedUserData) {
+        const userData = JSON.parse(storedUserData);
+        setUser(userData);
+      } else {
+        // Fallback to engineer if no stored data
+        const mockUser: User = {
+          id: '1',
+          name: 'John Engineer',
+          email: 'john.engineer@company.com',
+          role: 'engineer'
+        };
+        setUser(mockUser);
+      }
     } catch (error) {
       console.error('Token verification failed:', error);
       localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
       delete axios.defaults.headers.common['Authorization'];
     } finally {
       setLoading(false);
@@ -87,6 +94,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         const mockToken = 'mock-jwt-token';
         localStorage.setItem('authToken', mockToken);
+        localStorage.setItem('userData', JSON.stringify(mockUser));
         axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
         setUser(mockUser);
       } else if (email === 'engineer@company.com' && password === 'engineer') {
@@ -99,6 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         const mockToken = 'mock-jwt-token';
         localStorage.setItem('authToken', mockToken);
+        localStorage.setItem('userData', JSON.stringify(mockUser));
         axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
         setUser(mockUser);
       } else if (email === 'viewer@company.com' && password === 'viewer') {
@@ -111,6 +120,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         
         const mockToken = 'mock-jwt-token';
         localStorage.setItem('authToken', mockToken);
+        localStorage.setItem('userData', JSON.stringify(mockUser));
         axios.defaults.headers.common['Authorization'] = `Bearer ${mockToken}`;
         setUser(mockUser);
       } else {
@@ -126,6 +136,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const logout = () => {
     localStorage.removeItem('authToken');
+    localStorage.removeItem('userData');
     delete axios.defaults.headers.common['Authorization'];
     setUser(null);
   };

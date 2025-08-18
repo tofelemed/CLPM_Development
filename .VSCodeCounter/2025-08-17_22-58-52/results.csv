@@ -1,0 +1,7 @@
+"filename", "language", "Docker", "Python", "comment", "blank", "total"
+"l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\Dockerfile", "Docker", 7, 0, 0, 1, 8
+"l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\__init__.py", "Python", 0, 0, 1, 1, 2
+"l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\app.py", "Python", 0, 46, 0, 10, 56
+"l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\oscillation.py", "Python", 0, 28, 0, 3, 31
+"l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\stiction.py", "Python", 0, 17, 0, 2, 19
+"Total", "-", 7, 91, 1, 17, 116

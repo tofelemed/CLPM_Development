@@ -1,0 +1,78 @@
+Date : 2025-08-17 22:58:52
+Directory : l:\Office\CLPM\clpm-app-latest\python-services
+Total : 33 files,  -8217 codes, -150 comments, -537 blanks, all -8904 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| Python             |          4 |         91 |          1 |         16 |        108 |
+| Docker             |          2 |         -6 |         -1 |         -1 |         -8 |
+| JSON with Comments |          1 |        -12 |          0 |         -1 |        -13 |
+| HTML               |          1 |        -12 |          0 |         -1 |        -13 |
+| JSON               |          1 |        -45 |          0 |         -1 |        -46 |
+| CSS                |          1 |        -56 |          0 |         -4 |        -60 |
+| JavaScript         |          2 |        -57 |         -1 |         -2 |        -60 |
+| TypeScript JSX     |         21 |     -8,120 |       -149 |       -543 |     -8,812 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                                      | files      | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                                         |         33 |     -8,217 |       -150 |       -537 |     -8,904 |
+| ..                                                                                                        |         28 |     -8,315 |       -151 |       -554 |     -9,020 |
+| ..\frontend                                                                                               |         28 |     -8,315 |       -151 |       -554 |     -9,020 |
+| ..\frontend (Files)                                                                                       |          6 |       -139 |         -2 |         -7 |       -148 |
+| ..\frontend\src                                                                                           |         22 |     -8,176 |       -149 |       -547 |     -8,872 |
+| ..\frontend\src (Files)                                                                                   |          3 |       -167 |         -6 |        -17 |       -190 |
+| ..\frontend\src\components                                                                                |          8 |     -2,889 |        -43 |       -231 |     -3,163 |
+| ..\frontend\src\components (Files)                                                                        |          4 |     -2,733 |        -43 |       -211 |     -2,987 |
+| ..\frontend\src\components\ui                                                                             |          4 |       -156 |          0 |        -20 |       -176 |
+| ..\frontend\src\contexts                                                                                  |          1 |       -120 |         -7 |        -20 |       -147 |
+| ..\frontend\src\pages                                                                                     |         10 |     -5,000 |        -93 |       -279 |     -5,372 |
+| diagnostics_service                                                                                       |          5 |         98 |          1 |         17 |        116 |
+| diagnostics_service (Files)                                                                               |          1 |          7 |          0 |          1 |          8 |
+| diagnostics_service\src                                                                                   |          4 |         91 |          1 |         16 |        108 |
+| diagnostics_service\src\diagnostics_service                                                               |          4 |         91 |          1 |         16 |        108 |
++-----------------------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++-----------------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                                                  | language           | code       | comment    | blank      | total      |
++-----------------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| l:\Office\CLPM\clpm-app-latest\frontend\Dockerfile                                                        | Docker             |        -13 |         -1 |         -2 |        -16 |
+| l:\Office\CLPM\clpm-app-latest\frontend\index.html                                                        | HTML               |        -12 |          0 |         -1 |        -13 |
+| l:\Office\CLPM\clpm-app-latest\frontend\package.json                                                      | JSON               |        -45 |          0 |         -1 |        -46 |
+| l:\Office\CLPM\clpm-app-latest\frontend\postcss.config.js                                                 | JavaScript         |         -6 |          0 |         -1 |         -7 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\App.tsx                                                       | TypeScript JSX     |       -103 |         -6 |        -11 |       -120 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\AppShell.tsx                                       | TypeScript JSX     |       -251 |         -2 |        -17 |       -270 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\LoopConfiguration.tsx                              | TypeScript JSX     |       -679 |        -10 |        -64 |       -753 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\OPCUAConnectionManager.tsx                         | TypeScript JSX     |     -1,303 |        -17 |        -89 |     -1,409 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\OPCUATagBrowser.tsx                                | TypeScript JSX     |       -500 |        -14 |        -41 |       -555 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\badge.tsx                                       | TypeScript JSX     |        -23 |          0 |         -4 |        -27 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\button.tsx                                      | TypeScript JSX     |        -37 |          0 |         -4 |        -41 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\card.tsx                                        | TypeScript JSX     |        -49 |          0 |         -6 |        -55 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\tabs.tsx                                        | TypeScript JSX     |        -47 |          0 |         -6 |        -53 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\contexts\AuthContext.tsx                                      | TypeScript JSX     |       -120 |         -7 |        -20 |       -147 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\index.css                                                     | CSS                |        -56 |          0 |         -4 |        -60 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\main.tsx                                                      | TypeScript JSX     |         -8 |          0 |         -2 |        -10 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\APCAttainment.tsx                                       | TypeScript JSX     |       -302 |         -6 |        -22 |       -330 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\Dashboard.tsx                                           | TypeScript JSX     |       -746 |        -16 |        -40 |       -802 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoginPage.tsx                                           | TypeScript JSX     |       -138 |          0 |         -8 |       -146 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopConfig.tsx                                          | TypeScript JSX     |       -377 |         -7 |        -36 |       -420 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopConfiguration.tsx                                   | TypeScript JSX     |       -759 |        -13 |        -36 |       -808 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopDetail.tsx                                          | TypeScript JSX     |       -885 |        -24 |        -47 |       -956 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopsList.tsx                                           | TypeScript JSX     |       -742 |         -7 |        -25 |       -774 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\OPCConfig.tsx                                           | TypeScript JSX     |       -496 |         -9 |        -38 |       -543 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\OscillationClusters.tsx                                 | TypeScript JSX     |       -336 |         -7 |        -20 |       -363 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\Reports.tsx                                             | TypeScript JSX     |       -219 |         -4 |         -7 |       -230 |
+| l:\Office\CLPM\clpm-app-latest\frontend\tailwind.config.js                                                | JavaScript         |        -51 |         -1 |         -1 |        -53 |
+| l:\Office\CLPM\clpm-app-latest\frontend\tsconfig.json                                                     | JSON with Comments |        -12 |          0 |         -1 |        -13 |
+| l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\Dockerfile                             | Docker             |          7 |          0 |          1 |          8 |
+| l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\__init__.py    | Python             |          0 |          1 |          1 |          2 |
+| l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\app.py         | Python             |         46 |          0 |         10 |         56 |
+| l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\oscillation.py | Python             |         28 |          0 |          3 |         31 |
+| l:\Office\CLPM\clpm-app-latest\python-services\diagnostics_service\src\diagnostics_service\stiction.py    | Python             |         17 |          0 |          2 |         19 |
+| Total                                                                                                     |                    |     -8,217 |       -150 |       -537 |     -8,904 |
++-----------------------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

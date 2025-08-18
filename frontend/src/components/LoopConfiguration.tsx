@@ -49,6 +49,47 @@ interface LoopConfig {
   };
 }
 
+interface OPCUAServer {
+  id: string;
+  name: string;
+  endpointUrl: string;
+  enabled: boolean;
+  status?: string;
+}
+
+interface LoopSubscription {
+  loopId: string;
+  serverId: string;
+  enabled: boolean;
+  tags: {
+    pv: {
+      nodeId: string;
+      samplingInterval: number;
+      queueSize?: number;
+    };
+    op: {
+      nodeId: string;
+      samplingInterval: number;
+      queueSize?: number;
+    };
+    sp: {
+      nodeId: string;
+      samplingInterval: number;
+      queueSize?: number;
+    };
+    mode: {
+      nodeId: string;
+      samplingInterval: number;
+      queueSize?: number;
+    };
+    valve?: {
+      nodeId: string;
+      samplingInterval: number;
+      queueSize?: number;
+    };
+  };
+}
+
 interface LoopConfigurationProps {
   open: boolean;
   onClose: () => void;
@@ -57,6 +98,8 @@ interface LoopConfigurationProps {
 const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) => {
   const [loops, setLoops] = useState<Loop[]>([]);
   const [loopConfigs, setLoopConfigs] = useState<{[key: string]: LoopConfig}>({});
+  const [opcuaServers, setOpcuaServers] = useState<OPCUAServer[]>([]);
+  const [loopSubscriptions, setLoopSubscriptions] = useState<{[key: string]: LoopSubscription}>({});
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingLoop, setEditingLoop] = useState<Loop | null>(null);
   const [loading, setLoading] = useState(false);
@@ -73,7 +116,8 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
     sp_tag: '',
     mode_tag: '',
     valve_tag: '',
-    sampling_interval: 200
+    sampling_interval: 200,
+    opcua_server_id: ''
   });
 
   // Configuration form state
@@ -99,13 +143,15 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
     if (open) {
       loadLoops();
       loadLoopConfigs();
+      loadOPCUAServers();
+      loadLoopSubscriptions();
     }
   }, [open]);
 
   const loadLoops = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/loops', {
+      const response = await fetch('http://localhost:8080/api/v1/loops', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -127,7 +173,7 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       const configs: {[key: string]: LoopConfig} = {};
       
       for (const loop of loops) {
-        const response = await fetch(`/api/loops/${loop.id}/config`, {
+        const response = await fetch(`http://localhost:8080/api/v1/loops/${loop.id}/config`, {
           headers: {
             'Authorization': `Bearer ${localStorage.getItem('token')}`
           }
@@ -135,7 +181,9 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
         
         if (response.ok) {
           const config = await response.json();
-          configs[loop.id] = config;
+          if (config) { // Only add if config exists
+            configs[loop.id] = config;
+          }
         }
       }
       
@@ -145,14 +193,42 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
     }
   };
 
+  const loadOPCUAServers = async () => {
+    try {
+      const response = await fetch('/opcua-direct/api/v1/servers');
+      if (response.ok) {
+        const servers = await response.json();
+        setOpcuaServers(servers);
+      }
+    } catch (error) {
+      console.error('Failed to load OPC UA servers:', error);
+    }
+  };
+
+  const loadLoopSubscriptions = async () => {
+    try {
+      const response = await fetch('/opcua-direct/api/v1/loops');
+      if (response.ok) {
+        const subscriptions = await response.json();
+        const subscriptionsMap: {[key: string]: LoopSubscription} = {};
+        subscriptions.forEach((sub: LoopSubscription) => {
+          subscriptionsMap[sub.loopId] = sub;
+        });
+        setLoopSubscriptions(subscriptionsMap);
+      }
+    } catch (error) {
+      console.error('Failed to load loop subscriptions:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     try {
       setLoading(true);
       const url = editingLoop 
-        ? `/api/loops/${editingLoop.id}`
-        : '/api/loops';
+        ? `http://localhost:8080/api/v1/loops/${editingLoop.id}`
+        : 'http://localhost:8080/api/v1/loops';
       
       const method = editingLoop ? 'PUT' : 'POST';
       
@@ -168,9 +244,12 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       if (response.ok) {
         const savedLoop = await response.json();
         
-        // Save configuration if loop was created
-        if (!editingLoop) {
-          await saveLoopConfig(savedLoop.id);
+        // Save configuration
+        await saveLoopConfig(savedLoop.id);
+        
+        // Save OPC UA subscription if server is selected
+        if (formData.opcua_server_id) {
+          await saveOPCUASubscription(savedLoop.id);
         }
         
         setShowAddForm(false);
@@ -178,9 +257,10 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
         resetForm();
         await loadLoops();
         await loadLoopConfigs();
+        await loadLoopSubscriptions();
       } else {
         const error = await response.json();
-        alert(`Failed to save loop: ${error.message}`);
+        alert(`Failed to save loop: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to save loop:', error);
@@ -192,8 +272,9 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
 
   const saveLoopConfig = async (loopId: string) => {
     try {
-      const response = await fetch(`/api/loops/${loopId}/config`, {
-        method: 'POST',
+      const method = editingLoop ? 'PUT' : 'POST';
+      const response = await fetch(`http://localhost:8080/api/v1/loops/${loopId}/config`, {
+        method,
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -203,10 +284,69 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       
       if (!response.ok) {
         const error = await response.json();
-        alert(`Failed to save loop configuration: ${error.message}`);
+        console.warn(`Failed to save loop configuration: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to save loop configuration:', error);
+    }
+  };
+
+  const saveOPCUASubscription = async (loopId: string) => {
+    try {
+      const subscription: LoopSubscription = {
+        loopId: loopId,
+        serverId: formData.opcua_server_id,
+        enabled: true,
+        tags: {
+          pv: {
+            nodeId: formData.pv_tag,
+            samplingInterval: formData.sampling_interval,
+            queueSize: 10
+          },
+          op: {
+            nodeId: formData.op_tag,
+            samplingInterval: formData.sampling_interval,
+            queueSize: 10
+          },
+          sp: {
+            nodeId: formData.sp_tag,
+            samplingInterval: formData.sampling_interval,
+            queueSize: 10
+          },
+          mode: {
+            nodeId: formData.mode_tag,
+            samplingInterval: formData.sampling_interval,
+            queueSize: 10
+          },
+          ...(formData.valve_tag && {
+            valve: {
+              nodeId: formData.valve_tag,
+              samplingInterval: formData.sampling_interval,
+              queueSize: 10
+            }
+          })
+        }
+      };
+
+      const method = loopSubscriptions[loopId] ? 'PUT' : 'POST';
+      const url = method === 'PUT' 
+        ? `/opcua-direct/api/v1/loops/${loopId}` 
+        : '/opcua-direct/api/v1/loops';
+
+      const response = await fetch(url, {
+        method,
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(subscription)
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        console.warn(`Failed to save OPC UA subscription: ${error.error || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Failed to save OPC UA subscription:', error);
     }
   };
 
@@ -215,7 +355,9 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
     
     try {
       setLoading(true);
-      const response = await fetch(`/api/loops/${loopId}`, {
+      
+      // Delete from main API
+      const response = await fetch(`http://localhost:8080/api/v1/loops/${loopId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
@@ -223,11 +365,23 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       });
       
       if (response.ok) {
+        // Also delete OPC UA subscription if it exists
+        if (loopSubscriptions[loopId]) {
+          try {
+            await fetch(`/opcua-direct/api/v1/loops/${loopId}`, {
+              method: 'DELETE'
+            });
+          } catch (error) {
+            console.warn('Failed to delete OPC UA subscription:', error);
+          }
+        }
+        
         await loadLoops();
         await loadLoopConfigs();
+        await loadLoopSubscriptions();
       } else {
         const error = await response.json();
-        alert(`Failed to delete loop: ${error.message}`);
+        alert(`Failed to delete loop: ${error.message || 'Unknown error'}`);
       }
     } catch (error) {
       console.error('Failed to delete loop:', error);
@@ -239,6 +393,10 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
 
   const handleEdit = (loop: Loop) => {
     setEditingLoop(loop);
+    
+    // Get the OPC UA subscription for this loop
+    const subscription = loopSubscriptions[loop.id];
+    
     setFormData({
       name: loop.name,
       description: loop.description,
@@ -248,7 +406,8 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       sp_tag: loop.sp_tag,
       mode_tag: loop.mode_tag,
       valve_tag: loop.valve_tag || '',
-      sampling_interval: 200
+      sampling_interval: subscription?.tags.pv.samplingInterval || 200,
+      opcua_server_id: subscription?.serverId || ''
     });
     
     // Load existing configuration
@@ -294,7 +453,8 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
       sp_tag: '',
       mode_tag: '',
       valve_tag: '',
-      sampling_interval: 200
+      sampling_interval: 200,
+      opcua_server_id: ''
     });
     
     setConfigFormData({
@@ -402,6 +562,11 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(loop.status)}`}>
                               {loop.status}
                             </span>
+                            {loopSubscriptions[loop.id] && (
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                OPC UA
+                              </span>
+                            )}
                           </div>
                           <p className="text-sm text-gray-500 mb-3">{loop.description}</p>
                           
@@ -429,6 +594,19 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
                               </div>
                             )}
                           </div>
+                          
+                          {/* OPC UA Server Info */}
+                          {loopSubscriptions[loop.id] && (
+                            <div className="mt-3 p-2 bg-blue-50 rounded text-xs">
+                              <span className="font-medium text-blue-700">OPC UA Server: </span>
+                              <span className="text-blue-600">
+                                {opcuaServers.find(s => s.id === loopSubscriptions[loop.id].serverId)?.name || 'Unknown Server'}
+                              </span>
+                              <span className="ml-2 text-blue-500">
+                                ({loopSubscriptions[loop.id].serverId})
+                              </span>
+                            </div>
+                          )}
                         </div>
                         
                         <div className="flex items-center space-x-2 ml-4">
@@ -501,6 +679,33 @@ const LoopConfiguration: React.FC<LoopConfigurationProps> = ({ open, onClose }) 
                       className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
                       required
                     />
+                  </div>
+
+                  {/* OPC UA Server Selection */}
+                  <div className="border-t pt-4">
+                    <h5 className="text-sm font-medium text-gray-900 mb-3 flex items-center">
+                      <Settings className="h-4 w-4 mr-2" />
+                      OPC UA Server Selection
+                    </h5>
+                    
+                    <div className="mb-4">
+                      <label className="block text-sm font-medium text-gray-700">OPC UA Server</label>
+                      <select
+                        value={formData.opcua_server_id}
+                        onChange={(e) => setFormData({...formData, opcua_server_id: e.target.value})}
+                        className="mt-1 block w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                      >
+                        <option value="">No OPC UA Server (Manual Tags Only)</option>
+                        {opcuaServers.map(server => (
+                          <option key={server.id} value={server.id}>
+                            {server.name} - {server.endpointUrl}
+                          </option>
+                        ))}
+                      </select>
+                      <p className="mt-1 text-sm text-gray-500">
+                        Select an OPC UA server to enable tag browsing and automatic data collection
+                      </p>
+                    </div>
                   </div>
 
                   {/* OPC UA Tag Configuration */}

@@ -42,7 +42,9 @@ import {
 } from '@mui/icons-material';
 import axios from 'axios';
 
-const OPCUA_API_BASE = (import.meta as any).env.VITE_OPCUA_API_BASE || 'http://localhost:3001';
+// Route through Vite dev proxy to avoid CORS issues in dev
+const OPCUA_API_BASE = '/opcua-gateway';
+const DIRECT_OPCUA_API = '/opcua-direct';
 
 interface OPCUANode {
   nodeId: string;
@@ -52,12 +54,25 @@ interface OPCUANode {
   hasChildren: boolean;
 }
 
-interface OPCUAConnection {
+interface OPCUAServer {
   id: string;
+  name: string;
   endpointUrl: string;
+  enabled: boolean;
+  securityPolicy: string;
+  securityMode: string;
+  userAuthMethod: string;
+  samplingInterval: number;
+}
+
+interface OPCUAConnection {
+  serverId: string;
   status: string;
-  monitoredItemsCount: number;
-  reconnectAttempts: number;
+  endpoint: string;
+  lastConnected?: string;
+  activeSessions: number;
+  monitoredItems: number;
+  connectionQuality: string;
 }
 
 interface OPCUATagBrowserProps {
@@ -75,8 +90,9 @@ export default function OPCUATagBrowser({
   selectedTag,
   title = "OPC UA Tag Browser" 
 }: OPCUATagBrowserProps) {
+  const [servers, setServers] = useState<OPCUAServer[]>([]);
   const [connections, setConnections] = useState<OPCUAConnection[]>([]);
-  const [selectedConnection, setSelectedConnection] = useState<string>('');
+  const [selectedServer, setSelectedServer] = useState<string>('');
   const [nodes, setNodes] = useState<OPCUANode[]>([]);
   const [searchResults, setSearchResults] = useState<OPCUANode[]>([]);
   const [currentPath, setCurrentPath] = useState<string[]>(['RootFolder']);
@@ -91,47 +107,111 @@ export default function OPCUATagBrowser({
   const [showNodeDetails, setShowNodeDetails] = useState<OPCUANode | null>(null);
   const [nodeValue, setNodeValue] = useState<any>(null);
   const [readingValue, setReadingValue] = useState(false);
+  const [showServerDialog, setShowServerDialog] = useState(false);
+  const [newServer, setNewServer] = useState({
+    name: '',
+    endpointUrl: '',
+    securityPolicy: 'None',
+    securityMode: 'None',
+    userAuthMethod: 'anonymous',
+    username: '',
+    password: '',
+    samplingInterval: 200
+  });
 
   useEffect(() => {
     if (open) {
-      fetchConnections();
+      fetchServersAndConnections();
     }
   }, [open]);
 
   useEffect(() => {
-    if (selectedConnection) {
+    if (selectedServer) {
       browseNodes('RootFolder');
     }
-  }, [selectedConnection]);
+  }, [selectedServer]);
 
-  const fetchConnections = async () => {
+  const fetchServersAndConnections = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`${OPCUA_API_BASE}/connections`);
-      const connections = response.data.connections || [];
+      setError(null);
       
-      // Filter only connected connections
-      const connectedConnections = connections.filter((conn: OPCUAConnection) => conn.status === 'connected');
-      setConnections(connectedConnections);
-      
-      if (connectedConnections.length > 0) {
-        setSelectedConnection(connectedConnections[0].id);
-      } else if (connections.length > 0) {
-        setError('No connected OPC UA servers found. Please connect to a server first.');
-      } else {
-        setError('No OPC UA connections configured. Please create a connection first.');
+      // Try direct OPC UA API first, as it's the primary service
+      try {
+        // Fetch servers
+        const serversResponse = await axios.get(`${DIRECT_OPCUA_API}/api/v1/servers`);
+        const servers = serversResponse.data || [];
+        setServers(servers);
+        
+        // Fetch connections status
+        const connectionsResponse = await axios.get(`${DIRECT_OPCUA_API}/api/v1/connections`);
+        const connections = connectionsResponse.data || [];
+        setConnections(connections);
+        
+        // Find servers with active connections
+        const connectedServers = servers.filter((server: OPCUAServer) => 
+          server.enabled && connections.find((conn: OPCUAConnection) => 
+            conn.serverId === server.id && conn.status === 'connected'
+          )
+        );
+        
+        if (connectedServers.length > 0) {
+          setSelectedServer(connectedServers[0].id);
+        } else if (servers.length > 0) {
+          // If we have servers but none connected, still allow browsing (might auto-connect)
+          setSelectedServer(servers[0].id);
+          setError('No active OPC UA connections. Attempting to connect...');
+        } else {
+          setError('No OPC UA servers configured. Please configure a server first.');
+        }
+      } catch (err) {
+        console.warn('Direct OPC UA API not available, trying API Gateway');
+        try {
+          const response = await axios.get(`${OPCUA_API_BASE}/connections`);
+          const gatewayConnections = response.data.connections || [];
+          
+          // Convert gateway format to our format
+          const convertedServers = gatewayConnections.map((conn: any, index: number) => ({
+            id: conn.id || `server-${index}`,
+            name: `Server ${index + 1}`,
+            endpointUrl: conn.endpointUrl || 'Unknown',
+            enabled: true,
+            securityPolicy: 'Unknown',
+            securityMode: 'Unknown',
+            userAuthMethod: 'Unknown',
+            samplingInterval: 200
+          }));
+          
+          setServers(convertedServers);
+          setConnections(gatewayConnections.map((conn: any) => ({
+            serverId: conn.id || `server-${gatewayConnections.indexOf(conn)}`,
+            status: conn.status || 'unknown',
+            endpoint: conn.endpointUrl || 'Unknown',
+            activeSessions: 1,
+            monitoredItems: conn.monitoredItemsCount || 0,
+            connectionQuality: 'unknown'
+          })));
+          
+          if (convertedServers.length > 0) {
+            setSelectedServer(convertedServers[0].id);
+          } else {
+            setError('No OPC UA connections available.');
+          }
+        } catch (gatewayErr) {
+          setError('Failed to connect to OPC UA services. Please ensure the OPC UA client service is running.');
+        }
       }
     } catch (error: any) {
-      setError(`Failed to fetch OPC UA connections: ${error.response?.data?.error || error.message}`);
-      console.error('Error fetching connections:', error);
+      setError(`Failed to fetch OPC UA servers: ${error.response?.data?.error || error.message}`);
+      console.error('Error fetching servers and connections:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const browseNodes = async (nodeId: string, path: string[] = ['RootFolder']) => {
-    if (!selectedConnection) {
-      setError('Please select a connected OPC UA server first.');
+    if (!selectedServer) {
+      setError('Please select an OPC UA server first.');
       return;
     }
 
@@ -139,25 +219,43 @@ export default function OPCUATagBrowser({
       setLoading(true);
       setError(null);
       
-      const response = await axios.get(`${OPCUA_API_BASE}/connections/${selectedConnection}/browse`, {
-        params: { nodeId, maxResults: 1000 }
-      });
-      
-      const results = response.data.results || [];
-      setNodes(results);
-      setCurrentPath(path);
-      
-      // Clear search results when browsing
-      setSearchResults([]);
-      setSearchTerm('');
+      // Use direct OPC UA API
+      try {
+        const response = await axios.get(`${DIRECT_OPCUA_API}/api/v1/browse/${selectedServer}`, {
+          params: { nodeId, maxResults: 1000 }
+        });
+        
+        const results = response.data || [];
+        setNodes(results);
+        setCurrentPath(path);
+        
+        // Clear search results when browsing
+        setSearchResults([]);
+        setSearchTerm('');
+      } catch (err) {
+        // Fallback to API Gateway
+        try {
+          const response = await axios.get(`${OPCUA_API_BASE}/browse`, {
+            params: { nodeId, maxResults: 1000 }
+          });
+          
+          const results = response.data.results || [];
+          setNodes(results);
+          setCurrentPath(path);
+          setSearchResults([]);
+          setSearchTerm('');
+        } catch (gatewayErr) {
+          throw err; // Use original error
+        }
+      }
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message;
       setError(`Failed to browse nodes: ${errorMessage}`);
       console.error('Error browsing nodes:', error);
       
-      // If it's a connection error, refresh connections
+      // If it's a connection error, refresh servers and connections
       if (errorMessage.includes('Connection not available') || errorMessage.includes('not found')) {
-        fetchConnections();
+        fetchServersAndConnections();
       }
     } finally {
       setLoading(false);
@@ -165,8 +263,8 @@ export default function OPCUATagBrowser({
   };
 
   const searchNodes = async () => {
-    if (!selectedConnection) {
-      setError('Please select a connected OPC UA server first.');
+    if (!selectedServer) {
+      setError('Please select an OPC UA server first.');
       return;
     }
     
@@ -179,24 +277,43 @@ export default function OPCUATagBrowser({
       setSearchLoading(true);
       setError(null);
       
-      const response = await axios.get(`${OPCUA_API_BASE}/connections/${selectedConnection}/search`, {
-        params: { q: searchTerm.trim(), maxResults: 100 }
-      });
-      
-      const results = response.data.results || [];
-      setSearchResults(results);
-      
-      if (results.length === 0) {
-        setError(`No nodes found matching "${searchTerm}".`);
+      // Use direct OPC UA API
+      try {
+        const response = await axios.get(`${DIRECT_OPCUA_API}/api/v1/search/${selectedServer}`, {
+          params: { q: searchTerm.trim(), maxResults: 100 }
+        });
+        
+        const results = response.data || [];
+        setSearchResults(results);
+        
+        if (results.length === 0) {
+          setError(`No nodes found matching "${searchTerm}".`);
+        }
+      } catch (err) {
+        // Fallback to API Gateway
+        try {
+          const response = await axios.get(`${OPCUA_API_BASE}/search`, {
+            params: { q: searchTerm.trim(), maxResults: 100 }
+          });
+          
+          const results = response.data.results || [];
+          setSearchResults(results);
+          
+          if (results.length === 0) {
+            setError(`No nodes found matching "${searchTerm}".`);
+          }
+        } catch (gatewayErr) {
+          throw err; // Use original error
+        }
       }
     } catch (error: any) {
       const errorMessage = error.response?.data?.error || error.message;
       setError(`Failed to search nodes: ${errorMessage}`);
       console.error('Error searching nodes:', error);
       
-      // If it's a connection error, refresh connections
+      // If it's a connection error, refresh servers and connections
       if (errorMessage.includes('Connection not available') || errorMessage.includes('not found')) {
-        fetchConnections();
+        fetchServersAndConnections();
       }
     } finally {
       setSearchLoading(false);
@@ -232,13 +349,18 @@ export default function OPCUATagBrowser({
   };
 
   const readNodeValue = async (node: OPCUANode) => {
-    if (!selectedConnection) return;
+    if (!selectedServer) return;
 
     try {
       setReadingValue(true);
-      const response = await axios.get(`${OPCUA_API_BASE}/connections/${selectedConnection}/nodes/${encodeURIComponent(node.nodeId)}/read`);
-      setNodeValue(response.data.value);
-      setShowNodeDetails(node);
+      const response = await axios.post(`${DIRECT_OPCUA_API}/api/v1/nodes/${selectedServer}/read`, {
+        nodeIds: [node.nodeId]
+      });
+      const nodeValues = response.data || [];
+      if (nodeValues.length > 0) {
+        setNodeValue(nodeValues[0]);
+        setShowNodeDetails(node);
+      }
     } catch (error: any) {
       setError(`Failed to read node value: ${error.response?.data?.error || error.message}`);
       console.error('Error reading node value:', error);
@@ -254,6 +376,55 @@ export default function OPCUATagBrowser({
     newHistory.push({ nodeId, path });
     setNodeHistory(newHistory);
     setHistoryIndex(newHistory.length - 1);
+  };
+
+  const createServer = async () => {
+    if (!newServer.name.trim() || !newServer.endpointUrl.trim()) {
+      setError('Server name and endpoint URL are required.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const serverConfig = {
+        id: `server-${Date.now()}`,
+        name: newServer.name.trim(),
+        endpointUrl: newServer.endpointUrl.trim(),
+        enabled: true,
+        securityPolicy: newServer.securityPolicy,
+        securityMode: newServer.securityMode,
+        userAuthMethod: newServer.userAuthMethod,
+        samplingInterval: newServer.samplingInterval,
+        ...(newServer.userAuthMethod === 'username' && {
+          username: newServer.username,
+          password: newServer.password
+        })
+      };
+
+      await axios.post(`${DIRECT_OPCUA_API}/api/v1/servers`, serverConfig);
+      
+      // Reset form and close dialog
+      setNewServer({
+        name: '',
+        endpointUrl: '',
+        securityPolicy: 'None',
+        securityMode: 'None',
+        userAuthMethod: 'anonymous',
+        username: '',
+        password: '',
+        samplingInterval: 200
+      });
+      setShowServerDialog(false);
+      
+      // Refresh servers and connections
+      await fetchServersAndConnections();
+    } catch (error: any) {
+      setError(`Failed to create server: ${error.response?.data?.error || error.message}`);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getNodeIcon = (node: OPCUANode) => {
@@ -350,6 +521,7 @@ export default function OPCUATagBrowser({
   );
 
   return (
+    <>
     <Dialog 
       open={open} 
       onClose={onClose} 
@@ -386,39 +558,52 @@ export default function OPCUATagBrowser({
                 <FormControl fullWidth>
                   <InputLabel>Select Connection</InputLabel>
                   <Select
-                    value={selectedConnection}
-                    label="Select Connection"
-                    onChange={(e) => setSelectedConnection(e.target.value)}
-                    disabled={connections.length === 0}
+                    value={selectedServer}
+                    label="Select Server"
+                    onChange={(e) => setSelectedServer(e.target.value)}
+                    disabled={servers.length === 0}
                   >
-                    {connections.map((conn) => (
-                      <MenuItem key={conn.id} value={conn.id}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
-                          <Box>
-                            <Typography variant="body2">{conn.endpointUrl}</Typography>
-                            {conn.monitoredItemsCount !== undefined && (
+                    {servers.map((server) => {
+                      const connection = connections.find(c => c.serverId === server.id);
+                      return (
+                        <MenuItem key={server.id} value={server.id}>
+                          <Box display="flex" justifyContent="space-between" alignItems="center" width="100%">
+                            <Box>
+                              <Typography variant="body2">{server.name}</Typography>
                               <Typography variant="caption" color="textSecondary">
-                                {conn.monitoredItemsCount} monitored items
+                                {server.endpointUrl}
                               </Typography>
-                            )}
+                              {connection && (
+                                <Typography variant="caption" color="textSecondary" display="block">
+                                  {connection.monitoredItems} monitored items
+                                </Typography>
+                              )}
+                            </Box>
+                            <Chip 
+                              label={connection?.status || (server.enabled ? 'configured' : 'disabled')} 
+                              size="small" 
+                              color={connection?.status === 'connected' ? 'success' : server.enabled ? 'warning' : 'default'}
+                            />
                           </Box>
-                          <Chip 
-                            label={conn.status} 
-                            size="small" 
-                            color={conn.status === 'connected' ? 'success' : 'error'}
-                          />
-                        </Box>
-                      </MenuItem>
-                    ))}
+                        </MenuItem>
+                      );
+                    })}
                   </Select>
                 </FormControl>
-                <Box mt={1}>
+                <Box mt={1} display="flex" gap={1}>
                   <Button
                     startIcon={<RefreshIcon />}
-                    onClick={fetchConnections}
+                    onClick={fetchServersAndConnections}
                     disabled={connectionLoading}
                   >
-                    Refresh Connections
+                    Refresh
+                  </Button>
+                  <Button
+                    variant="outlined"
+                    startIcon={<PlayArrowIcon />}
+                    onClick={() => setShowServerDialog(true)}
+                  >
+                    Add Server
                   </Button>
                 </Box>
               </CardContent>
@@ -439,14 +624,14 @@ export default function OPCUATagBrowser({
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && searchNodes()}
-                    disabled={!selectedConnection}
+                    disabled={!selectedServer}
                     helperText="Search by node name, browse name, or node ID"
                   />
                   <Button
                     variant="contained"
                     startIcon={<SearchIcon />}
                     onClick={searchNodes}
-                    disabled={!selectedConnection || !searchTerm.trim() || searchLoading}
+                    disabled={!selectedServer || !searchTerm.trim() || searchLoading}
                   >
                     Search
                   </Button>
@@ -550,5 +735,88 @@ export default function OPCUATagBrowser({
         </Button>
       </DialogActions>
     </Dialog>
+
+    
+    <Dialog 
+      open={showServerDialog} 
+      onClose={() => setShowServerDialog(false)} 
+      maxWidth="md" 
+      fullWidth
+    >
+      <DialogTitle>Add OPC UA Server</DialogTitle>
+      <DialogContent>
+        <Box component="form" sx={{ mt: 1 }}>
+          <TextField
+            fullWidth
+            label="Server Name"
+            value={newServer.name}
+            onChange={(e) => setNewServer({ ...newServer, name: e.target.value })}
+            margin="normal"
+            required
+          />
+          <TextField
+            fullWidth
+            label="Endpoint URL"
+            value={newServer.endpointUrl}
+            onChange={(e) => setNewServer({ ...newServer, endpointUrl: e.target.value })}
+            margin="normal"
+            placeholder="opc.tcp://localhost:4840"
+            required
+          />
+          <FormControl fullWidth margin="normal">
+            <InputLabel>Authentication Method</InputLabel>
+            <Select
+              value={newServer.userAuthMethod}
+              label="Authentication Method"
+              onChange={(e) => setNewServer({ ...newServer, userAuthMethod: e.target.value })}
+            >
+              <MenuItem value="anonymous">Anonymous</MenuItem>
+              <MenuItem value="username">Username/Password</MenuItem>
+            </Select>
+          </FormControl>
+          
+          {newServer.userAuthMethod === 'username' && (
+            <>
+              <TextField
+                fullWidth
+                label="Username"
+                value={newServer.username}
+                onChange={(e) => setNewServer({ ...newServer, username: e.target.value })}
+                margin="normal"
+              />
+              <TextField
+                fullWidth
+                type="password"
+                label="Password"
+                value={newServer.password}
+                onChange={(e) => setNewServer({ ...newServer, password: e.target.value })}
+                margin="normal"
+              />
+            </>
+          )}
+          
+          <TextField
+            fullWidth
+            type="number"
+            label="Sampling Interval (ms)"
+            value={newServer.samplingInterval}
+            onChange={(e) => setNewServer({ ...newServer, samplingInterval: parseInt(e.target.value) || 200 })}
+            margin="normal"
+            inputProps={{ min: 100, max: 10000 }}
+          />
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setShowServerDialog(false)}>Cancel</Button>
+        <Button 
+          variant="contained" 
+          onClick={createServer}
+          disabled={loading || !newServer.name.trim() || !newServer.endpointUrl.trim()}
+        >
+          Create Server
+        </Button>
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }
