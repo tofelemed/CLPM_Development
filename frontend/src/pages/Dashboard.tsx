@@ -457,7 +457,7 @@ export default function Dashboard() {
   };
 
   const getLoopSize = (importance: number) => {
-    return Math.max(80, importance * 200); // Minimum 80px, max 200px
+    return Math.max(20, importance * 30); // Smaller: minimum 20px, max 50px
   };
 
   const filteredLoops = loops.filter(loop => {
@@ -480,8 +480,13 @@ export default function Dashboard() {
   }
 
   return (
-    <Box>
-      <Typography variant="h4" gutterBottom>
+    <Box sx={{ p: 2, maxWidth: '100%', overflow: 'hidden' }}>
+      <Typography variant="h4" gutterBottom sx={{ 
+        fontWeight: 700, 
+        color: '#2c3e50',
+        mb: 3,
+        fontSize: { xs: '1.5rem', sm: '2rem' }
+      }}>
         Dashboard
       </Typography>
 
@@ -492,50 +497,66 @@ export default function Dashboard() {
       )}
 
       {/* KPI Summary Cards */}
-      <Grid container spacing={3} sx={{ mb: 3 }}>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
+      <Grid container spacing={1.5} sx={{ mb: 2 }}>
+        <Grid item xs={6} sm={6} md={3}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(102, 126, 234, 0.3)'
+          }}>
+            <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5, fontSize: '0.75rem' }}>
                 Total Loops
               </Typography>
-              <Typography variant="h4">
+              <Typography variant="h5" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
                 {kpiSummary?.totalLoops || 0}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
+        <Grid item xs={6} sm={6} md={3}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(76, 175, 80, 0.3)'
+          }}>
+            <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5, fontSize: '0.75rem' }}>
                 Normal Loops
               </Typography>
-              <Typography variant="h4" color="success.main">
+              <Typography variant="h5" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
                 {kpiSummary?.normalLoops || 0}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Average Service Factor
+        <Grid item xs={6} sm={6} md={3}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #ff9800 0%, #f57c00 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(255, 152, 0, 0.3)'
+          }}>
+            <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5, fontSize: '0.75rem' }}>
+                Avg Service Factor
               </Typography>
-              <Typography variant="h4">
-                {(kpiSummary?.averageServiceFactor || 0).toFixed(2)}
+              <Typography variant="h5" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
+                {(kpiSummary?.averageServiceFactor || 0).toFixed(1)}
               </Typography>
             </CardContent>
           </Card>
         </Grid>
-        <Grid item xs={12} sm={6} md={3}>
-          <Card>
-            <CardContent>
-              <Typography color="textSecondary" gutterBottom>
-                Loops Exceeding Thresholds
+        <Grid item xs={6} sm={6} md={3}>
+          <Card sx={{ 
+            background: 'linear-gradient(135deg, #f44336 0%, #d32f2f 100%)',
+            color: 'white',
+            boxShadow: '0 4px 12px rgba(244, 67, 54, 0.3)'
+          }}>
+            <CardContent sx={{ p: 1.5, textAlign: 'center' }}>
+              <Typography variant="body2" sx={{ opacity: 0.9, mb: 0.5, fontSize: '0.75rem' }}>
+                Exceeding Thresholds
               </Typography>
-              <Typography variant="h4" color="error.main">
+              <Typography variant="h5" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
                 {kpiSummary?.loopsExceedingThresholds || 0}
               </Typography>
             </CardContent>
@@ -543,28 +564,30 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
-      <Grid container spacing={3}>
+      <Grid container spacing={1.5}>
         {/* Filters and Treemap */}
-        <Grid item xs={12} lg={9}>
+        <Grid item xs={12} lg={8}>
           {/* Enhanced Filters */}
-          <Paper sx={{ p: 2, mb: 2 }}>
-            <Grid container spacing={2} alignItems="center">
-              <Grid item xs={12} sm={3}>
+          <Paper sx={{ p: 1.5, mb: 1.5, boxShadow: '0 2px 8px rgba(0,0,0,0.1)', overflow: 'hidden' }}>
+            <Grid container spacing={1} alignItems="center">
+              <Grid item xs={12} sm={4} md={3}>
                 <TextField
                   fullWidth
                   label="Search Loops"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   size="small"
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: '8px' } }}
                 />
               </Grid>
-              <Grid item xs={12} sm={2}>
+              <Grid item xs={6} sm={3} md={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Classification</InputLabel>
                   <Select
                     value={classificationFilter}
                     label="Classification"
                     onChange={(e) => setClassificationFilter(e.target.value)}
+                    sx={{ borderRadius: '8px' }}
                   >
                     <MenuItem value="all">All</MenuItem>
                     <MenuItem value="normal">Normal</MenuItem>
@@ -574,13 +597,14 @@ export default function Dashboard() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={2}>
+              <Grid item xs={6} sm={3} md={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Plant Area</InputLabel>
                   <Select
                     value={plantAreaFilter}
                     label="Plant Area"
                     onChange={(e) => setPlantAreaFilter(e.target.value)}
+                    sx={{ borderRadius: '8px' }}
                   >
                     <MenuItem value="all">All Areas</MenuItem>
                     {plantAreas.map(area => (
@@ -589,13 +613,14 @@ export default function Dashboard() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={2}>
+              <Grid item xs={6} sm={3} md={2}>
                 <FormControl fullWidth size="small">
                   <InputLabel>Criticality</InputLabel>
                   <Select
                     value={criticalityFilter}
                     label="Criticality"
                     onChange={(e) => setCriticalityFilter(e.target.value)}
+                    sx={{ borderRadius: '8px' }}
                   >
                     <MenuItem value="all">All</MenuItem>
                     <MenuItem value="high">High</MenuItem>
@@ -604,19 +629,29 @@ export default function Dashboard() {
                   </Select>
                 </FormControl>
               </Grid>
-              <Grid item xs={12} sm={3}>
+              <Grid item xs={6} sm={3} md={3}>
                 <Box display="flex" gap={1}>
                   <DatePicker
                     label="Start Date"
                     value={startDate}
                     onChange={(newValue) => setStartDate(newValue)}
-                    slotProps={{ textField: { size: 'small' } }}
+                    slotProps={{ 
+                      textField: { 
+                        size: 'small',
+                        sx: { '& .MuiOutlinedInput-root': { borderRadius: '8px' } }
+                      } 
+                    }}
                   />
                   <DatePicker
                     label="End Date"
                     value={endDate}
                     onChange={(newValue) => setEndDate(newValue)}
-                    slotProps={{ textField: { size: 'small' } }}
+                    slotProps={{ 
+                      textField: { 
+                        size: 'small',
+                        sx: { '& .MuiOutlinedInput-root': { borderRadius: '8px' } }
+                      } 
+                    }}
                   />
                 </Box>
               </Grid>
@@ -624,124 +659,77 @@ export default function Dashboard() {
           </Paper>
 
           {/* Enhanced Treemap */}
-          <Paper sx={{ p: 2, minHeight: 500 }}>
-            <Typography variant="h6" gutterBottom>
+          <Paper sx={{ p: 1.5, minHeight: 50, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Typography variant="h6" gutterBottom sx={{ fontSize: '1.1rem', fontWeight: 600, color: '#2c3e50' }}>
               Loop Performance Treemap
             </Typography>
             <Box
               sx={{
                 display: 'flex',
                 flexWrap: 'wrap',
-                gap: 1,
-                p: 2,
-                minHeight: 400,
+                gap: 0.5,
+                p: 1,
+                minHeight: 40,
                 alignItems: 'flex-start',
-                alignContent: 'flex-start'
+                alignContent: 'flex-start',
+                maxWidth: '100%',
+                overflow: 'hidden'
               }}
             >
               {filteredLoops.map((loop) => (
                 <Tooltip
                   key={loop.id}
                   title={
-                    <Box sx={{ maxWidth: 400 }}>
-                      <Typography variant="subtitle2" fontWeight="bold" gutterBottom>{loop.name}</Typography>
-                      <Typography variant="body2" gutterBottom>{loop.description}</Typography>
+                    <Box sx={{ maxWidth: 280, p: 1 }}>
+                      <Typography variant="subtitle2" fontWeight="bold" gutterBottom sx={{ color: '#2c3e50' }}>
+                        {loop.name}
+                      </Typography>
+                      <Typography variant="body2" gutterBottom sx={{ fontSize: '0.8rem', color: '#666' }}>
+                        {loop.description}
+                      </Typography>
                       <Divider sx={{ my: 1 }} />
                       
-                      {/* Primary KPIs */}
-                      <Typography variant="subtitle2" color="primary" gutterBottom>Primary KPIs</Typography>
+                      {/* Key Metrics */}
                       <Grid container spacing={1}>
                         <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Service Factor:</strong> {(loop.serviceFactor * 100).toFixed(1)}%</Typography>
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            <strong>Service Factor:</strong> {(loop.serviceFactor * 100).toFixed(1)}%
+                          </Typography>
                         </Grid>
                         <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Performance Index:</strong> {loop.pi.toFixed(3)}</Typography>
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            <strong>PI:</strong> {loop.pi.toFixed(2)}
+                          </Typography>
                         </Grid>
                         <Grid item xs={6}>
-                          <Typography variant="body2"><strong>RPI:</strong> {loop.rpi.toFixed(3)}</Typography>
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            <strong>Oscillation:</strong> {loop.oscillationIndex.toFixed(2)}
+                          </Typography>
                         </Grid>
                         <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Oscillation Index:</strong> {loop.oscillationIndex.toFixed(3)}</Typography>
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            <strong>Stiction:</strong> {(loop.stictionSeverity * 100).toFixed(0)}%
+                          </Typography>
                         </Grid>
                         <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Stiction Severity:</strong> {(loop.stictionSeverity * 100).toFixed(1)}%</Typography>
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            <strong>Classification:</strong> {loop.classification}
+                          </Typography>
                         </Grid>
                         <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Deadband:</strong> {loop.deadband.toFixed(3)}</Typography>
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem' }}>
+                            <strong>Criticality:</strong> {loop.criticality}
+                          </Typography>
                         </Grid>
                       </Grid>
                       
-                      <Divider sx={{ my: 1 }} />
-                      
-                      {/* Control Performance */}
-                      <Typography variant="subtitle2" color="primary" gutterBottom>Control Performance</Typography>
-                      <Grid container spacing={1}>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Saturation:</strong> {(loop.saturation * 100).toFixed(1)}%</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Valve Travel:</strong> {(loop.valveTravel * 100).toFixed(1)}%</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Settling Time:</strong> {loop.settlingTime}s</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Overshoot:</strong> {(loop.overshoot * 100).toFixed(1)}%</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Rise Time:</strong> {loop.riseTime}s</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Peak Error:</strong> {loop.peakError.toFixed(1)}</Typography>
-                        </Grid>
-                      </Grid>
-                      
-                      <Divider sx={{ my: 1 }} />
-                      
-                      {/* Process Characteristics */}
-                      <Typography variant="subtitle2" color="primary" gutterBottom>Process Characteristics</Typography>
-                      <Grid container spacing={1}>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Process Gain:</strong> {loop.processGain.toFixed(2)}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Time Constant:</strong> {loop.timeConstant}s</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Dead Time:</strong> {loop.deadTime}s</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Noise Level:</strong> {loop.noiseLevel.toFixed(3)}</Typography>
-                        </Grid>
-                      </Grid>
-                      
-                      <Divider sx={{ my: 1 }} />
-                      
-                      {/* Operational Metrics */}
-                      <Typography variant="subtitle2" color="primary" gutterBottom>Operational Metrics</Typography>
-                      <Grid container spacing={1}>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Setpoint Changes:</strong> {loop.setpointChanges}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Mode Changes:</strong> {loop.modeChanges}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Valve Reversals:</strong> {loop.valveReversals}</Typography>
-                        </Grid>
-                        <Grid item xs={6}>
-                          <Typography variant="body2"><strong>Control Error:</strong> {loop.controlError.toFixed(2)}</Typography>
-                        </Grid>
-                      </Grid>
-                      
-                      <Divider sx={{ my: 1 }} />
-                      
-                      {/* Metadata */}
-                      <Typography variant="body2"><strong>Classification:</strong> {loop.classification}</Typography>
-                      <Typography variant="body2"><strong>Plant Area:</strong> {loop.plantArea}</Typography>
-                      <Typography variant="body2"><strong>Criticality:</strong> {loop.criticality}</Typography>
                       {loop.rootCause && (
-                        <Typography variant="body2"><strong>Root Cause:</strong> {loop.rootCause}</Typography>
+                        <>
+                          <Divider sx={{ my: 1 }} />
+                          <Typography variant="body2" sx={{ fontSize: '0.75rem', color: '#e74c3c' }}>
+                            <strong>Root Cause:</strong> {loop.rootCause}
+                          </Typography>
+                        </>
                       )}
                     </Box>
                   }
@@ -758,35 +746,58 @@ export default function Dashboard() {
                       alignItems: 'center',
                       backgroundColor: getLoopColor(loop),
                       color: 'white',
-                      border: loop.classification !== 'normal' ? '3px solid #f44336' : '1px solid #ddd',
-                      animation: loop.classification !== 'normal' ? 'blink 2s infinite' : 'none',
+                      border: loop.classification !== 'normal' ? '2px solid #f44336' : '1px solid rgba(255,255,255,0.2)',
+                      borderRadius: '6px',
+                      boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                      animation: loop.classification !== 'normal' ? 'pulse 2s infinite' : 'none',
+                      transition: 'all 0.2s ease-in-out',
                       '&:hover': {
-                        transform: 'scale(1.05)',
-                        boxShadow: 3,
-                        zIndex: 1
+                        transform: 'scale(1.08)',
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+                        zIndex: 10
                       },
-                      '@keyframes blink': {
-                        '0%, 50%': { borderColor: '#f44336' },
-                        '51%, 100%': { borderColor: 'transparent' }
+                      '@keyframes pulse': {
+                        '0%, 100%': { 
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2), 0 0 0 0 rgba(244, 67, 54, 0.7)' 
+                        },
+                        '50%': { 
+                          boxShadow: '0 1px 3px rgba(0,0,0,0.2), 0 0 0 4px rgba(244, 67, 54, 0)' 
+                        }
                       }
                     }}
                     onClick={() => navigate(`/loops/${loop.id}`)}
                   >
-                    <CardContent sx={{ textAlign: 'center', p: 1 }}>
-                      <Typography variant="caption" sx={{ fontWeight: 'bold', display: 'block' }}>
-                        {loop.name}
+                    <CardContent sx={{ textAlign: 'center', p: 0.5, width: '100%' }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          fontWeight: 'bold', 
+                          display: 'block', 
+                          fontSize: '0.6rem',
+                          lineHeight: 1.1,
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          whiteSpace: 'nowrap',
+                          maxWidth: '100%'
+                        }}
+                      >
+                        {loop.name.length > 8 ? loop.name.substring(0, 6) + '...' : loop.name}
                       </Typography>
                       <Chip
-                        label={loop.classification}
+                        label={loop.classification.charAt(0).toUpperCase()}
                         size="small"
                         color={getClassificationColor(loop.classification) as any}
-                        sx={{ mt: 0.5, mb: 0.5 }}
+                        sx={{ 
+                          mt: 0.2, 
+                          mb: 0.2, 
+                          height: '14px',
+                          fontSize: '0.55rem',
+                          minWidth: '14px',
+                          '& .MuiChip-label': { px: 0.25 }
+                        }}
                       />
-                      <Typography variant="caption" sx={{ display: 'block' }}>
-                        SF: {loop.serviceFactor.toFixed(2)}
-                      </Typography>
-                      <Typography variant="caption" sx={{ display: 'block' }}>
-                        PI: {loop.pi.toFixed(2)}
+                      <Typography variant="caption" sx={{ display: 'block', fontSize: '0.55rem', lineHeight: 1 }}>
+                        {loop.serviceFactor.toFixed(1)}
                       </Typography>
                     </CardContent>
                   </Card>
@@ -797,15 +808,16 @@ export default function Dashboard() {
         </Grid>
 
         {/* Root-Cause Alerts Panel */}
-        <Grid item xs={12} lg={3}>
-          <Paper sx={{ p: 2, height: 'fit-content' }}>
-            <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-              <Typography variant="h6">
+        <Grid item xs={12} lg={4}>
+          <Paper sx={{ p: 1.5, height: 'fit-content', boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
+            <Box display="flex" justifyContent="space-between" alignItems="center" mb={1.5}>
+              <Typography variant="h6" sx={{ fontSize: '1.1rem', fontWeight: 600, color: '#2c3e50' }}>
                 Root-Cause Alerts
               </Typography>
               <IconButton
                 size="small"
                 onClick={() => setAlertsExpanded(!alertsExpanded)}
+                sx={{ color: '#666' }}
               >
                 {alertsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
               </IconButton>
@@ -815,19 +827,28 @@ export default function Dashboard() {
               {oscillationClusters.length > 0 ? (
                 <List dense>
                   {oscillationClusters.map((cluster, index) => (
-                    <ListItem
-                      key={index}
-                      sx={{
-                        border: `2px solid ${cluster.severity === 'high' ? '#f44336' : cluster.severity === 'medium' ? '#ff9800' : '#2196f3'}`,
-                        borderRadius: 1,
-                        mb: 1,
-                        animation: 'blink 2s infinite',
-                        '@keyframes blink': {
-                          '0%, 50%': { borderColor: cluster.severity === 'high' ? '#f44336' : cluster.severity === 'medium' ? '#ff9800' : '#2196f3' },
-                          '51%, 100%': { borderColor: 'transparent' }
-                        }
-                      }}
-                    >
+                                         <ListItem
+                       key={index}
+                       sx={{
+                         border: `2px solid ${cluster.severity === 'high' ? '#f44336' : cluster.severity === 'medium' ? '#ff9800' : '#2196f3'}`,
+                         borderRadius: '8px',
+                         mb: 1,
+                         animation: 'pulse 2s infinite',
+                         transition: 'all 0.2s ease-in-out',
+                         '&:hover': {
+                           transform: 'translateY(-1px)',
+                           boxShadow: '0 4px 8px rgba(0,0,0,0.15)'
+                         },
+                         '@keyframes pulse': {
+                           '0%, 100%': { 
+                             boxShadow: `0 0 0 0 ${cluster.severity === 'high' ? 'rgba(244, 67, 54, 0.7)' : cluster.severity === 'medium' ? 'rgba(255, 152, 0, 0.7)' : 'rgba(33, 150, 243, 0.7)'}` 
+                           },
+                           '50%': { 
+                             boxShadow: `0 0 0 4px ${cluster.severity === 'high' ? 'rgba(244, 67, 54, 0)' : cluster.severity === 'medium' ? 'rgba(255, 152, 0, 0)' : 'rgba(33, 150, 243, 0)'}` 
+                           }
+                         }
+                       }}
+                     >
                       <ListItemIcon>
                         <TimelineIcon color={getSeverityColor(cluster.severity) as any} />
                       </ListItemIcon>

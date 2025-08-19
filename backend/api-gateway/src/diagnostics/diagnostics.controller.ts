@@ -29,4 +29,13 @@ export class DiagnosticsController {
     );
     return rows[0] || null;
   }
+
+  @Get('history')
+  @Roles('viewer','engineer','admin')
+  async history(@Param('id') id: string) {
+    const { rows } = await this.pg.query(
+      `SELECT * FROM diagnostic_results WHERE loop_id = $1 ORDER BY timestamp DESC LIMIT 50`, [id]
+    );
+    return rows;
+  }
 }

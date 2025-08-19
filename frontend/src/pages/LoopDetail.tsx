@@ -169,134 +169,247 @@ export default function LoopDetail() {
   }, [id, timeWindow, kpiWindow]);
 
   const fetchLoopData = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-      // Mock data for demo
-      const mockLoop: Loop = {
-        id: id!,
-        name: 'Temperature Control Loop',
-        description: 'Reactor temperature control for optimal reaction conditions',
-        pvTag: 'TEMP_PV',
-        opTag: 'TEMP_OP',
-        spTag: 'TEMP_SP',
-        importance: 0.9,
-        classification: 'normal',
-        serviceFactor: 0.85,
-        pi: 0.78,
-        rpi: 0.82,
-        oscillationIndex: 0.12,
-        stictionSeverity: 0.05,
-        plantArea: 'Reactor Section',
-        criticality: 'high',
-        lastUpdated: new Date().toISOString(),
+    try {
+      setLoading(true);
+      setError(null);
+      
+      // Fetch loop details
+      const loopResponse = await axios.get(`${API}/loops/${id}`);
+      const loopData = loopResponse.data;
+      
+      // Transform loop data to match our interface
+      const transformedLoop: Loop = {
+        id: loopData.id,
+        name: loopData.name,
+        description: loopData.description,
+        pvTag: loopData.pv_tag,
+        opTag: loopData.op_tag,
+        spTag: loopData.sp_tag,
+        importance: loopData.importance || 0.5,
+        classification: 'normal', // Will be updated from diagnostics
+        serviceFactor: 0.85, // Will be updated from KPI data
+        pi: 0.78, // Will be updated from KPI data
+        rpi: 0.82, // Will be updated from KPI data
+        oscillationIndex: 0.12, // Will be updated from KPI data
+        stictionSeverity: 0.05, // Will be updated from KPI data
+        plantArea: 'Plant Area',
+        criticality: loopData.importance > 7 ? 'high' : loopData.importance > 4 ? 'medium' : 'low',
+        lastUpdated: loopData.updated_at || new Date().toISOString(),
         deadband: 0.02,
         saturation: 0.08,
-        setpointChanges: 12,
-        modeChanges: 3,
+        setpointChanges: 0,
+        modeChanges: 0,
         valveTravel: 0.75,
         settlingTime: 45,
         overshoot: 0.05,
-        riseTime: 120,
-        peakError: 2.3,
-        integralError: 15.7,
-        derivativeError: 0.8,
+        riseTime: 30,
+        peakError: 0,
+        integralError: 0,
+        derivativeError: 0,
         controlError: 1.2,
         valveReversals: 8,
         noiseLevel: 0.03,
-        processGain: 1.2,
-        timeConstant: 180,
+        processGain: 0.5,
+        timeConstant: 60,
         deadTime: 30
       };
 
-      const mockConfig: LoopConfig = {
-        sf_low: 0.6,
-        sf_high: 0.9,
-        sat_high: 0.95,
-        rpi_low: 0.5,
-        rpi_high: 0.8,
-        osc_limit: 0.3,
-        kpi_window: 60,
-        importance: 0.9
-      };
+      setLoop(transformedLoop);
 
-      // Generate trend data
-      const now = Date.now();
-      const mockTrendData: TrendData[] = Array.from({ length: 60 }, (_, i) => ({
-        timestamp: new Date(now - (60 - i) * 60000).toISOString(),
-        pv: 150 + Math.sin(i * 0.1) * 5 + Math.random() * 2,
-        sp: 150 + Math.sin(i * 0.05) * 3,
-        op: 45 + Math.sin(i * 0.1) * 3 + Math.random() * 1,
-        mode: i % 20 === 0 ? 'AUTO' : 'MANUAL',
-        valvePosition: 45 + Math.sin(i * 0.1) * 3 + Math.random() * 1
-      }));
-
-      // Generate KPI data
-      const mockKpiData: KPIData[] = Array.from({ length: 24 }, (_, i) => ({
-        timestamp: new Date(now - (24 - i) * 3600000).toISOString(),
-        serviceFactor: 0.85 + Math.random() * 0.1,
-        pi: 0.78 + Math.random() * 0.15,
-        rpi: 0.82 + Math.random() * 0.12,
-        oscillationIndex: 0.12 + Math.random() * 0.2,
-        stictionIndex: 0.05 + Math.random() * 0.1
-      }));
-
-      // Generate diagnostics history
-      const mockDiagnostics: DiagnosticResult[] = [
-        {
-          timestamp: new Date().toISOString(),
-          classification: 'normal',
-          stictionSeverity: 0.05,
-          oscillationPeriod: 0,
-          hurstExponent: 0.52
-        },
-        {
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          classification: 'normal',
-          stictionSeverity: 0.08,
-          oscillationPeriod: 0,
-          hurstExponent: 0.51
-        },
-        {
-          timestamp: new Date(Date.now() - 7200000).toISOString(),
-          classification: 'oscillating',
-          stictionSeverity: 0.12,
-          oscillationPeriod: 5.2,
-          hurstExponent: 0.48,
-          rootCause: 'Flow control interaction'
-        }
-      ];
-
-      setLoop(mockLoop);
-      setConfig(mockConfig);
-      setTrendData(mockTrendData);
-      setKpiData(mockKpiData);
-      setDiagnostics(mockDiagnostics);
-      } catch (err: any) {
-        console.error('Error fetching loop data:', err);
-        setError(err.response?.data?.message || 'Failed to fetch loop data');
-      } finally {
-        setLoading(false);
+      // Fetch loop configuration
+      try {
+        const configResponse = await axios.get(`${API}/loops/${id}/config`);
+        const configData = configResponse.data;
+        setConfig({
+          sf_low: configData.sf_low || 0.6,
+          sf_high: configData.sf_high || 0.9,
+          sat_high: configData.sat_high || 0.95,
+          rpi_low: configData.rpi_low || 0.5,
+          rpi_high: configData.rpi_high || 0.8,
+          osc_limit: configData.osc_limit || 0.3,
+          kpi_window: configData.kpi_window || 60,
+          importance: configData.importance || 0.9
+        });
+      } catch (configError) {
+        console.warn('Could not fetch loop configuration:', configError);
+        // Use default config
+        setConfig({
+          sf_low: 0.6,
+          sf_high: 0.9,
+          sat_high: 0.95,
+          rpi_low: 0.5,
+          rpi_high: 0.8,
+          osc_limit: 0.3,
+          kpi_window: 60,
+          importance: 0.9
+        });
       }
-    };
+
+      // Fetch raw trend data
+      try {
+        const endTime = new Date();
+        const startTime = new Date(endTime.getTime() - parseTimeWindow(timeWindow));
+        
+        const dataResponse = await axios.get(`${API}/loops/${id}/data`, {
+          params: {
+            start: startTime.toISOString(),
+            end: endTime.toISOString(),
+            fields: 'pv,op,sp,mode,valve_position'
+          }
+        });
+        
+        const rawData = dataResponse.data;
+        const trendData: TrendData[] = [];
+        
+        if (rawData.ts && rawData.ts.length > 0) {
+          for (let i = 0; i < rawData.ts.length; i++) {
+            trendData.push({
+              timestamp: rawData.ts[i],
+              pv: rawData.pv?.[i] || 0,
+              sp: rawData.sp?.[i] || 0,
+              op: rawData.op?.[i] || 0,
+              mode: rawData.mode?.[i] || 'AUTO',
+              valvePosition: rawData.valve_position?.[i] || 0
+            });
+          }
+        }
+        
+        setTrendData(trendData);
+      } catch (dataError) {
+        console.warn('Could not fetch trend data:', dataError);
+        setTrendData([]);
+      }
+
+      // Fetch KPI history
+      try {
+        const endTime = new Date();
+        const startTime = new Date(endTime.getTime() - parseTimeWindow(kpiWindow));
+        
+        const kpiResponse = await axios.get(`${API}/loops/${id}/kpis`, {
+          params: {
+            start: startTime.toISOString(),
+            end: endTime.toISOString(),
+            limit: 100
+          }
+        });
+        
+        const kpiResults = kpiResponse.data.results || [];
+        const kpiData: KPIData[] = kpiResults.map((kpi: any) => ({
+          timestamp: kpi.timestamp,
+          serviceFactor: kpi.service_factor || 0,
+          pi: kpi.pi || 0,
+          rpi: kpi.rpi || 0,
+          oscillationIndex: kpi.osc_index || 0,
+          stictionIndex: kpi.stiction || 0
+        }));
+        
+        setKpiData(kpiData);
+        
+        // Update loop with latest KPI data
+        if (kpiResults.length > 0) {
+          const latestKpi = kpiResults[0];
+          setLoop(prev => prev ? {
+            ...prev,
+            serviceFactor: latestKpi.service_factor || prev.serviceFactor,
+            pi: latestKpi.pi || prev.pi,
+            rpi: latestKpi.rpi || prev.rpi,
+            oscillationIndex: latestKpi.osc_index || prev.oscillationIndex,
+            stictionSeverity: latestKpi.stiction || prev.stictionSeverity,
+            saturation: latestKpi.sat_percent || prev.saturation,
+            valveTravel: latestKpi.output_travel || prev.valveTravel
+          } : prev);
+        }
+      } catch (kpiError) {
+        console.warn('Could not fetch KPI data:', kpiError);
+        setKpiData([]);
+      }
+
+      // Fetch diagnostic results
+      try {
+        const diagResponse = await axios.get(`${API}/loops/${id}/diagnostics`);
+        const diagData = diagResponse.data;
+        
+        // Fetch diagnostic history
+        const diagHistoryResponse = await axios.get(`${API}/loops/${id}/diagnostics/history`);
+        const diagHistory = diagHistoryResponse.data || [];
+        
+                 const diagnosticResults: DiagnosticResult[] = diagHistory.map((diag: any) => ({
+           timestamp: diag.timestamp,
+           classification: diag.classification || 'normal',
+           stictionSeverity: Number(diag.stiction_pct) || 0,
+           oscillationPeriod: Number(diag.osc_period) || 0,
+           hurstExponent: 0.5, // Not available in current schema
+           rootCause: diag.root_cause || undefined
+         }));
+        
+        setDiagnostics(diagnosticResults);
+        
+        // Update loop classification with latest diagnostic
+        if (diagData) {
+          setLoop(prev => prev ? {
+            ...prev,
+            classification: diagData.classification || 'normal'
+          } : prev);
+        }
+      } catch (diagError) {
+        console.warn('Could not fetch diagnostic data:', diagError);
+        setDiagnostics([]);
+      }
+
+    } catch (err: any) {
+      console.error('Error fetching loop data:', err);
+      setError(err.response?.data?.message || 'Failed to fetch loop data');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Helper function to parse time window
+  const parseTimeWindow = (window: string): number => {
+    const match = window.match(/^(\d+)([hmd])$/);
+    if (!match) return 60 * 60 * 1000; // Default to 1 hour
+
+    const value = parseInt(match[1]);
+    const unit = match[2];
+
+    switch (unit) {
+      case 'h':
+        return value * 60 * 60 * 1000;
+      case 'm':
+        return value * 60 * 1000;
+      case 'd':
+        return value * 24 * 60 * 60 * 1000;
+      default:
+        return 60 * 60 * 1000;
+    }
+  };
 
   const handleRunDiagnostics = async () => {
     try {
       setRunningDiagnostics(true);
-      // Simulate diagnostics run
-      await new Promise(resolve => setTimeout(resolve, 3000));
       
-      // Add new diagnostic result
-      const newDiagnostic: DiagnosticResult = {
-        timestamp: new Date().toISOString(),
-        classification: 'normal',
-        stictionSeverity: 0.05 + Math.random() * 0.1,
-        oscillationPeriod: 0,
-        hurstExponent: 0.5 + Math.random() * 0.1
-      };
+      // Call the diagnostics API
+      const response = await axios.post(`${API}/loops/${id}/diagnostics/run`, {});
+      const result = response.data;
+      
+             // Create new diagnostic result from API response
+       const newDiagnostic: DiagnosticResult = {
+         timestamp: new Date().toISOString(),
+         classification: result.classification || 'normal',
+         stictionSeverity: Number(result.stiction_pct) || 0,
+         oscillationPeriod: Number(result.osc_period_s) || 0,
+         hurstExponent: 0.5, // Not available in current API
+         rootCause: result.root_cause || undefined
+       };
       
       setDiagnostics([newDiagnostic, ...diagnostics]);
+      
+      // Update loop classification
+      setLoop(prev => prev ? {
+        ...prev,
+        classification: result.classification || 'normal'
+      } : prev);
+      
     } catch (err: any) {
       console.error('Error running diagnostics:', err);
       setError('Failed to run diagnostics');
@@ -808,8 +921,8 @@ export default function LoopDetail() {
             )}
           </Box>
 
-          {/* Latest Diagnostic Result */}
-          {diagnostics.length > 0 && (
+                     {/* Latest Diagnostic Result */}
+           {diagnostics && diagnostics.length > 0 && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
@@ -824,24 +937,24 @@ export default function LoopDetail() {
                       size="small"
                     />
                   </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="body2" color="textSecondary">Stiction Severity</Typography>
-                    <Typography variant="h6">
-                      {(diagnostics[0].stictionSeverity * 100).toFixed(1)}%
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="body2" color="textSecondary">Oscillation Period</Typography>
-                    <Typography variant="h6">
-                      {diagnostics[0].oscillationPeriod > 0 ? `${diagnostics[0].oscillationPeriod.toFixed(1)}s` : 'None'}
-                    </Typography>
-                  </Grid>
-                  <Grid item xs={12} sm={6} md={3}>
-                    <Typography variant="body2" color="textSecondary">Hurst Exponent</Typography>
-                    <Typography variant="h6">
-                      {diagnostics[0].hurstExponent.toFixed(3)}
-                    </Typography>
-                  </Grid>
+                                     <Grid item xs={12} sm={6} md={3}>
+                     <Typography variant="body2" color="textSecondary">Stiction Severity</Typography>
+                     <Typography variant="h6">
+                       {(Number(diagnostics[0].stictionSeverity) * 100).toFixed(1)}%
+                     </Typography>
+                   </Grid>
+                                     <Grid item xs={12} sm={6} md={3}>
+                     <Typography variant="body2" color="textSecondary">Oscillation Period</Typography>
+                     <Typography variant="h6">
+                       {diagnostics[0].oscillationPeriod && Number(diagnostics[0].oscillationPeriod) > 0 ? `${Number(diagnostics[0].oscillationPeriod).toFixed(1)}s` : 'None'}
+                     </Typography>
+                   </Grid>
+                                     <Grid item xs={12} sm={6} md={3}>
+                     <Typography variant="body2" color="textSecondary">Hurst Exponent</Typography>
+                     <Typography variant="h6">
+                       {Number(diagnostics[0].hurstExponent).toFixed(3)}
+                     </Typography>
+                   </Grid>
                 </Grid>
                 {diagnostics[0].rootCause && (
                   <Box mt={2}>
@@ -853,12 +966,13 @@ export default function LoopDetail() {
             </Card>
           )}
 
-          {/* Diagnostic History */}
-          <Typography variant="h6" gutterBottom>
-            Diagnostic History
-          </Typography>
-          <List>
-            {diagnostics.map((diagnostic, index) => (
+                     {/* Diagnostic History */}
+           <Typography variant="h6" gutterBottom>
+             Diagnostic History
+           </Typography>
+           {diagnostics && diagnostics.length > 0 ? (
+             <List>
+               {diagnostics.map((diagnostic, index) => (
               <ListItem key={index} divider>
                 <ListItemIcon>
                   <AssessmentIcon color={getClassificationColor(diagnostic.classification) as any} />
@@ -867,11 +981,11 @@ export default function LoopDetail() {
                   primary={`${diagnostic.classification} - ${format(new Date(diagnostic.timestamp), 'MMM dd, HH:mm')}`}
                   secondary={
                     <Box>
-                      <Typography variant="body2">
-                        Stiction: {(diagnostic.stictionSeverity * 100).toFixed(1)}% | 
-                        Period: {diagnostic.oscillationPeriod > 0 ? `${diagnostic.oscillationPeriod.toFixed(1)}s` : 'None'} | 
-                        Hurst: {diagnostic.hurstExponent.toFixed(3)}
-                      </Typography>
+                                             <Typography variant="body2">
+                         Stiction: {(Number(diagnostic.stictionSeverity) * 100).toFixed(1)}% | 
+                         Period: {diagnostic.oscillationPeriod && Number(diagnostic.oscillationPeriod) > 0 ? `${Number(diagnostic.oscillationPeriod).toFixed(1)}s` : 'None'} | 
+                         Hurst: {Number(diagnostic.hurstExponent).toFixed(3)}
+                       </Typography>
                       {diagnostic.rootCause && (
                         <Typography variant="body2" color="textSecondary">
                           Root Cause: {diagnostic.rootCause}
@@ -880,9 +994,14 @@ export default function LoopDetail() {
                     </Box>
                   }
                 />
-              </ListItem>
-            ))}
-          </List>
+                               </ListItem>
+               ))}
+             </List>
+           ) : (
+             <Alert severity="info">
+               No diagnostic history available.
+             </Alert>
+           )}
         </TabPanel>
 
         {/* Configuration Tab */}
