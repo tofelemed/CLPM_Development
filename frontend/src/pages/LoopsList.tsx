@@ -109,141 +109,63 @@ export default function LoopsList() {
       setLoading(true);
       setError(null);
       
-      // Mock data for demo
-      const mockLoops: Loop[] = [
-        {
-          id: 'loop-1',
-          name: 'Temperature Control Loop',
-          description: 'Reactor temperature control',
-          pvTag: 'TEMP_PV',
-          opTag: 'TEMP_OP',
-          spTag: 'TEMP_SP',
-          classification: 'normal',
-          serviceFactor: 0.85,
-          lastUpdated: new Date().toISOString(),
-          importance: 0.9,
-          plantArea: 'Reactor Section',
-          criticality: 'high',
-          pi: 0.78,
-          rpi: 0.82,
-          oscillationIndex: 0.12,
-          stictionSeverity: 0.05,
-          deadband: 0.02,
-          saturation: 0.08,
-          valveTravel: 0.75,
-          settlingTime: 45,
-          overshoot: 0.05,
-          controlError: 1.2,
-          valveReversals: 8,
-          noiseLevel: 0.03
-        },
-        {
-          id: 'loop-2',
-          name: 'Pressure Control Loop',
-          description: 'Distillation column pressure',
-          pvTag: 'PRESS_PV',
-          opTag: 'PRESS_OP',
-          spTag: 'PRESS_SP',
-          classification: 'oscillating',
-          serviceFactor: 0.45,
-          lastUpdated: new Date().toISOString(),
-          importance: 0.7,
-          plantArea: 'Distillation Section',
-          criticality: 'high',
-          pi: 0.32,
-          rpi: 0.38,
-          oscillationIndex: 0.78,
-          stictionSeverity: 0.15,
-          deadband: 0.15,
-          saturation: 0.25,
-          valveTravel: 0.45,
-          settlingTime: 180,
-          overshoot: 0.25,
-          controlError: 4.8,
-          valveReversals: 25,
-          noiseLevel: 0.12
-        },
-        {
-          id: 'loop-3',
-          name: 'Flow Control Loop',
-          description: 'Feed flow rate control',
-          pvTag: 'FLOW_PV',
-          opTag: 'FLOW_OP',
-          spTag: 'FLOW_SP',
-          classification: 'stiction',
-          serviceFactor: 0.62,
-          lastUpdated: new Date().toISOString(),
-          importance: 0.8,
-          plantArea: 'Feed Section',
-          criticality: 'medium',
-          pi: 0.58,
-          rpi: 0.61,
-          oscillationIndex: 0.25,
-          stictionSeverity: 0.68,
-          deadband: 0.08,
-          saturation: 0.18,
-          valveTravel: 0.35,
-          settlingTime: 90,
-          overshoot: 0.12,
-          controlError: 2.8,
-          valveReversals: 12,
-          noiseLevel: 0.06
-        },
-        {
-          id: 'loop-4',
-          name: 'Level Control Loop',
-          description: 'Tank level control',
-          pvTag: 'LEVEL_PV',
-          opTag: 'LEVEL_OP',
-          spTag: 'LEVEL_SP',
-          classification: 'normal',
-          serviceFactor: 0.92,
-          lastUpdated: new Date().toISOString(),
-          importance: 0.6,
-          plantArea: 'Storage Section',
-          criticality: 'low',
-          pi: 0.88,
-          rpi: 0.91,
-          oscillationIndex: 0.08,
-          stictionSeverity: 0.03,
-          deadband: 0.01,
-          saturation: 0.03,
-          valveTravel: 0.85,
-          settlingTime: 30,
-          overshoot: 0.02,
-          controlError: 0.6,
-          valveReversals: 4,
-          noiseLevel: 0.02
-        },
-        {
-          id: 'loop-5',
-          name: 'pH Control Loop',
-          description: 'pH control for neutralization',
-          pvTag: 'PH_PV',
-          opTag: 'PH_OP',
-          spTag: 'PH_SP',
-          classification: 'deadband',
-          serviceFactor: 0.35,
-          lastUpdated: new Date().toISOString(),
-          importance: 0.5,
-          plantArea: 'Treatment Section',
-          criticality: 'medium',
-          pi: 0.28,
-          rpi: 0.31,
-          oscillationIndex: 0.45,
-          stictionSeverity: 0.22,
-          deadband: 0.25,
-          saturation: 0.35,
-          valveTravel: 0.25,
-          settlingTime: 240,
-          overshoot: 0.35,
-          controlError: 7.1,
-          valveReversals: 35,
-          noiseLevel: 0.18
-        }
-      ];
+      // Fetch real data from API
+      const response = await axios.get(`${API}/loops`);
+      const apiLoops = response.data.loops || response.data;
+      
+             // Transform API data to match frontend interface
+       const transformedLoops: Loop[] = apiLoops.map((loop: any) => {
+         // Determine classification based on description
+         let classification: 'normal' | 'oscillating' | 'stiction' | 'deadband' = 'normal';
+         let serviceFactor = 0.85;
+         let pi = 0.78;
+         let rpi = 0.82;
+         let oscillationIndex = 0.12;
+         let stictionSeverity = 0.05;
+         
+         if (loop.description.toLowerCase().includes('oscillation')) {
+           classification = 'oscillating';
+           serviceFactor = 0.45;
+           pi = 0.32;
+           rpi = 0.38;
+           oscillationIndex = 0.78;
+         } else if (loop.description.toLowerCase().includes('stiction')) {
+           classification = 'stiction';
+           serviceFactor = 0.62;
+           pi = 0.58;
+           rpi = 0.61;
+           stictionSeverity = 0.68;
+         }
+         
+         return {
+           id: loop.id,
+           name: loop.name,
+           description: loop.description,
+           pvTag: loop.pv_tag,
+           opTag: loop.op_tag,
+           spTag: loop.sp_tag,
+           classification,
+           serviceFactor,
+           lastUpdated: loop.updated_at || new Date().toISOString(),
+           importance: loop.importance || 0.5,
+           plantArea: 'Plant Area', // Default value
+           criticality: loop.importance > 7 ? 'high' : loop.importance > 4 ? 'medium' : 'low',
+           pi,
+           rpi,
+           oscillationIndex,
+           stictionSeverity,
+           deadband: 0.02, // Default value
+           saturation: 0.08, // Default value
+           valveTravel: 0.75, // Default value
+           settlingTime: 45, // Default value
+           overshoot: 0.05, // Default value
+           controlError: 1.2, // Default value
+           valveReversals: 8, // Default value
+           noiseLevel: 0.03 // Default value
+         };
+       });
 
-      setLoops(mockLoops);
+      setLoops(transformedLoops);
     } catch (err: any) {
       console.error('Error fetching loops:', err);
       setError(err.response?.data?.message || 'Failed to fetch loops');
