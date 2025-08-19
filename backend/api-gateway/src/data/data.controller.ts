@@ -14,9 +14,17 @@ export class DataController {
     @Param('id') id: string,
     @Query('start') start: string,
     @Query('end') end: string,
-    @Query('fields') fields?: string
+    @Query('fields') fields?: string,
+    @Query('interval') interval?: string,
+    @Query('limit') limit?: string
   ) {
     const f = fields ? fields.split(',') : ['pv','op','sp','mode'];
-    return this.service.queryRaw(id, start, end, f);
+    const limitNum = limit ? parseInt(limit) : undefined;
+    return this.service.queryRaw(id, start, end, f, interval, limitNum);
+  }
+
+  @Get('range')
+  getDataRange(@Param('id') id: string) {
+    return this.service.getDataRange(id); 
   }
 }

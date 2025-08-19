@@ -245,7 +245,7 @@ export default function LoopDetail() {
         });
       }
 
-             // Fetch raw trend data
+             // Fetch raw trend data with smart sampling
        try {
          // Get the available data range from the database first
          const dataRangeResponse = await axios.get(`${API}/loops/${id}/data/range`);
@@ -261,26 +261,43 @@ export default function LoopDetail() {
            dataStartTime = new Date(dataEndTime.getTime() - (7 * 24 * 60 * 60 * 1000)); // 7 days ago
          }
          
-         // Calculate the requested time window within the available data range
+         // Calculate the requested time window
          const requestedWindow = parseTimeWindow(timeWindow);
          const availableDuration = dataEndTime.getTime() - dataStartTime.getTime();
          
-         // Always use the full available data range, regardless of requested window
-         // This ensures we show all available data
-         const endTime = dataEndTime;
-         const startTime = dataStartTime;
+         // Smart sampling: limit data points based on time window
+         let sampleInterval = '1 minute'; // Default
+         let limit = 1000; // Default limit
+         
+         if (timeWindow === '1h') {
+           sampleInterval = '1 minute';
+           limit = 60;
+         } else if (timeWindow === '6h') {
+           sampleInterval = '5 minutes';
+           limit = 72;
+         } else if (timeWindow === '24h') {
+           sampleInterval = '15 minutes';
+           limit = 96;
+         } else if (timeWindow === '7d') {
+           sampleInterval = '1 hour';
+           limit = 168;
+         }
+         
+         // Use the requested time window, not the full available range
+         const endTime = new Date();
+         const startTime = new Date(endTime.getTime() - requestedWindow);
          
          console.log('Requested window:', timeWindow, '(', requestedWindow / (1000 * 60 * 60), 'hours)');
-         console.log('Available duration:', availableDuration / (1000 * 60 * 60), 'hours');
-        
-         console.log('Available data range:', dataStartTime.toISOString(), 'to:', dataEndTime.toISOString());
+         console.log('Sample interval:', sampleInterval, 'Limit:', limit);
          console.log('Fetching trend data from:', startTime.toISOString(), 'to:', endTime.toISOString());
          
          const dataResponse = await axios.get(`${API}/loops/${id}/data`, {
            params: {
              start: startTime.toISOString(),
              end: endTime.toISOString(),
-             fields: 'pv,op,sp,mode,valve_position'
+             fields: 'pv,op,sp,mode,valve_position',
+             interval: sampleInterval,
+             limit: limit
            }
          });
          
@@ -603,16 +620,18 @@ export default function LoopDetail() {
              </Box>
            </Box>
           
-          <ResponsiveContainer width="100%" height={400}>
-            <LineChart data={trendData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis 
-                dataKey="timestamp" 
-                tickFormatter={(value) => format(new Date(value), 'HH:mm')}
-              />
-              <YAxis yAxisId="left" />
-              <YAxis yAxisId="right" orientation="right" />
-                             <RechartsTooltip 
+                     <ResponsiveContainer width="100%" height={400}>
+             <LineChart data={trendData}>
+               <CartesianGrid strokeDasharray="3 3" />
+               <XAxis 
+                 dataKey="timestamp" 
+                 tickFormatter={(value) => format(new Date(value), 'HH:mm')}
+                 interval="preserveStartEnd"
+                 minTickGap={50}
+               />
+               <YAxis yAxisId="left" />
+               <YAxis yAxisId="right" orientation="right" />
+                              <RechartsTooltip 
                  labelFormatter={(value) => format(new Date(value), 'MMM dd, HH:mm:ss')}
                  formatter={(value: any, name: string) => {
                    // Handle null, undefined, or non-numeric values
@@ -620,41 +639,49 @@ export default function LoopDetail() {
                    return [numValue.toFixed(2), name];
                  }}
                />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="pv" 
-                stroke="#2196f3" 
-                name="PV" 
-                strokeWidth={2}
-              />
-              <Line 
-                yAxisId="left"
-                type="monotone" 
-                dataKey="sp" 
-                stroke="#4caf50" 
-                name="SP" 
-                strokeWidth={2}
-              />
-              <Line 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="op" 
-                stroke="#ff9800" 
-                name="OP" 
-                strokeWidth={2}
-              />
-              <Line 
-                yAxisId="right"
-                type="monotone" 
-                dataKey="valvePosition" 
-                stroke="#9c27b0" 
-                name="Valve Position" 
-                strokeWidth={1}
-                strokeDasharray="5 5"
-              />
-            </LineChart>
-          </ResponsiveContainer>
+               <Line 
+                 yAxisId="left"
+                 type="monotone" 
+                 dataKey="pv" 
+                 stroke="#2196f3" 
+                 name="PV" 
+                 strokeWidth={2}
+                 dot={false}
+                 connectNulls={true}
+               />
+               <Line 
+                 yAxisId="left"
+                 type="monotone" 
+                 dataKey="sp" 
+                 stroke="#4caf50" 
+                 name="SP" 
+                 strokeWidth={2}
+                 dot={false}
+                 connectNulls={true}
+               />
+               <Line 
+                 yAxisId="right"
+                 type="monotone" 
+                 dataKey="op" 
+                 stroke="#ff9800" 
+                 name="OP" 
+                 strokeWidth={2}
+                 dot={false}
+                 connectNulls={true}
+               />
+               <Line 
+                 yAxisId="right"
+                 type="monotone" 
+                 dataKey="valvePosition" 
+                 stroke="#9c27b0" 
+                 name="Valve Position" 
+                 strokeWidth={1}
+                 strokeDasharray="5 5"
+                 dot={false}
+                 connectNulls={true}
+               />
+             </LineChart>
+           </ResponsiveContainer>
           
           {/* Mode Changes Overlay */}
           <Box mt={2}>
