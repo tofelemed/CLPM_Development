@@ -47,4 +47,19 @@ export class KpiController {
   ) {
     return this.service.getKPISummary(id, start, end);
   }
+
+  @Get('comprehensive')
+  @ApiParam({ name: 'id', description: 'Loop ID' })
+  @ApiQuery({ name: 'start', description: 'Start time (ISO 8601)', required: false })
+  @ApiQuery({ name: 'end', description: 'End time (ISO 8601)', required: false })
+  @ApiQuery({ name: 'limit', description: 'Maximum number of results', required: false, type: Number })
+  @Roles('viewer','engineer','admin')
+  async getComprehensive(
+    @Param('id') id: string,
+    @Query('start') start?: string,
+    @Query('end') end?: string,
+    @Query('limit') limit?: number
+  ) {
+    return this.service.getComprehensiveKPIs(id, start, end, limit);
+  }
 }

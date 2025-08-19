@@ -11,7 +11,33 @@ export class KpiService {
       await this.validateLoopExists(loopId);
 
       let sql = `
-        SELECT timestamp, service_factor, effective_sf, sat_percent, output_travel, pi, rpi, osc_index, stiction
+        SELECT 
+          timestamp, 
+          service_factor, 
+          effective_sf, 
+          sat_percent, 
+          output_travel, 
+          pi, 
+          rpi, 
+          osc_index, 
+          stiction,
+          deadband,
+          saturation,
+          valve_travel,
+          settling_time,
+          overshoot,
+          rise_time,
+          peak_error,
+          integral_error,
+          derivative_error,
+          control_error,
+          valve_reversals,
+          noise_level,
+          process_gain,
+          time_constant,
+          dead_time,
+          setpoint_changes,
+          mode_changes
         FROM kpi_results 
         WHERE loop_id = $1
       `;
@@ -65,7 +91,33 @@ export class KpiService {
 
       // Get the most recent KPI result within the window
       const sql = `
-        SELECT timestamp, service_factor, effective_sf, sat_percent, output_travel, pi, rpi, osc_index, stiction
+        SELECT 
+          timestamp, 
+          service_factor, 
+          effective_sf, 
+          sat_percent, 
+          output_travel, 
+          pi, 
+          rpi, 
+          osc_index, 
+          stiction,
+          deadband,
+          saturation,
+          valve_travel,
+          settling_time,
+          overshoot,
+          rise_time,
+          peak_error,
+          integral_error,
+          derivative_error,
+          control_error,
+          valve_reversals,
+          noise_level,
+          process_gain,
+          time_constant,
+          dead_time,
+          setpoint_changes,
+          mode_changes
         FROM kpi_results 
         WHERE loop_id = $1 AND timestamp >= $2 AND timestamp <= $3
         ORDER BY timestamp DESC 
@@ -110,12 +162,33 @@ export class KpiService {
           AVG(rpi) as avg_rpi,
           AVG(osc_index) as avg_osc_index,
           AVG(stiction) as avg_stiction,
+          AVG(deadband) as avg_deadband,
+          AVG(saturation) as avg_saturation,
+          AVG(valve_travel) as avg_valve_travel,
+          AVG(settling_time) as avg_settling_time,
+          AVG(overshoot) as avg_overshoot,
+          AVG(rise_time) as avg_rise_time,
+          AVG(peak_error) as avg_peak_error,
+          AVG(integral_error) as avg_integral_error,
+          AVG(derivative_error) as avg_derivative_error,
+          AVG(control_error) as avg_control_error,
+          AVG(valve_reversals) as avg_valve_reversals,
+          AVG(noise_level) as avg_noise_level,
+          AVG(process_gain) as avg_process_gain,
+          AVG(time_constant) as avg_time_constant,
+          AVG(dead_time) as avg_dead_time,
+          AVG(setpoint_changes) as avg_setpoint_changes,
+          AVG(mode_changes) as avg_mode_changes,
           MIN(service_factor) as min_service_factor,
           MAX(service_factor) as max_service_factor,
           MIN(pi) as min_pi,
           MAX(pi) as max_pi,
           MIN(rpi) as min_rpi,
-          MAX(rpi) as max_rpi
+          MAX(rpi) as max_rpi,
+          MIN(osc_index) as min_osc_index,
+          MAX(osc_index) as max_osc_index,
+          MIN(stiction) as min_stiction,
+          MAX(stiction) as max_stiction
         FROM kpi_results 
         WHERE loop_id = $1
       `;
@@ -160,7 +233,24 @@ export class KpiService {
             pi: this.roundTo3Decimals(summary.avg_pi),
             rpi: this.roundTo3Decimals(summary.avg_rpi),
             osc_index: this.roundTo3Decimals(summary.avg_osc_index),
-            stiction: this.roundTo3Decimals(summary.avg_stiction)
+            stiction: this.roundTo3Decimals(summary.avg_stiction),
+            deadband: this.roundTo3Decimals(summary.avg_deadband),
+            saturation: this.roundTo3Decimals(summary.avg_saturation),
+            valve_travel: this.roundTo3Decimals(summary.avg_valve_travel),
+            settling_time: this.roundToInteger(summary.avg_settling_time),
+            overshoot: this.roundTo3Decimals(summary.avg_overshoot),
+            rise_time: this.roundToInteger(summary.avg_rise_time),
+            peak_error: this.roundTo3Decimals(summary.avg_peak_error),
+            integral_error: this.roundTo3Decimals(summary.avg_integral_error),
+            derivative_error: this.roundTo3Decimals(summary.avg_derivative_error),
+            control_error: this.roundTo3Decimals(summary.avg_control_error),
+            valve_reversals: this.roundToInteger(summary.avg_valve_reversals),
+            noise_level: this.roundTo3Decimals(summary.avg_noise_level),
+            process_gain: this.roundTo3Decimals(summary.avg_process_gain),
+            time_constant: this.roundToInteger(summary.avg_time_constant),
+            dead_time: this.roundToInteger(summary.avg_dead_time),
+            setpoint_changes: this.roundToInteger(summary.avg_setpoint_changes),
+            mode_changes: this.roundToInteger(summary.avg_mode_changes)
           },
           ranges: {
             service_factor: {
@@ -174,6 +264,14 @@ export class KpiService {
             rpi: {
               min: this.roundTo3Decimals(summary.min_rpi),
               max: this.roundTo3Decimals(summary.max_rpi)
+            },
+            osc_index: {
+              min: this.roundTo3Decimals(summary.min_osc_index),
+              max: this.roundTo3Decimals(summary.max_osc_index)
+            },
+            stiction: {
+              min: this.roundTo3Decimals(summary.min_stiction),
+              max: this.roundTo3Decimals(summary.max_stiction)
             }
           }
         },
@@ -277,5 +375,81 @@ export class KpiService {
   private roundTo3Decimals(value: number | null): number | null {
     if (value === null) return null;
     return Math.round(value * 1000) / 1000;
+  }
+
+  private roundToInteger(value: number | null): number | null {
+    if (value === null) return null;
+    return Math.round(value);
+  }
+
+  async getComprehensiveKPIs(loopId: string, start?: string, end?: string, limit?: number) {
+    try {
+      // Validate loop exists
+      await this.validateLoopExists(loopId);
+
+      let sql = `
+        SELECT 
+          kr.*,
+          l.name as loop_name,
+          l.description as loop_description,
+          l.pv_tag,
+          l.op_tag,
+          l.sp_tag,
+          l.importance,
+          -- Calculated performance metrics
+          (kr.service_factor + kr.pi + kr.rpi) / 3.0 as overall_performance,
+          CASE 
+            WHEN kr.osc_index < 0.3 AND kr.stiction < 0.3 THEN 'Good'
+            ELSE 'Poor'
+          END as control_quality,
+          CASE 
+            WHEN kr.stiction < 0.3 AND kr.valve_reversals < 15 THEN 'Good'
+            ELSE 'Poor'
+          END as valve_health,
+          CASE 
+            WHEN kr.noise_level < 0.1 AND kr.overshoot < 0.1 THEN 'Stable'
+            ELSE 'Unstable'
+          END as process_stability
+        FROM kpi_results kr
+        JOIN loops l ON kr.loop_id = l.id
+        WHERE kr.loop_id = $1 AND l.deleted_at IS NULL
+      `;
+      
+      const params: any[] = [loopId];
+      let paramIndex = 1;
+
+      if (start && end) {
+        sql += ` AND kr.timestamp BETWEEN $${++paramIndex} AND $${++paramIndex}`;
+        params.push(start, end);
+      } else if (start) {
+        sql += ` AND kr.timestamp >= $${++paramIndex}`;
+        params.push(start);
+      } else if (end) {
+        sql += ` AND kr.timestamp <= $${++paramIndex}`;
+        params.push(end);
+      }
+
+      sql += ` ORDER BY kr.timestamp DESC`;
+
+      if (limit && limit > 0) {
+        sql += ` LIMIT $${++paramIndex}`;
+        params.push(limit);
+      }
+
+      const { rows } = await this.pg.query(sql, params);
+      
+      return {
+        loop_id: loopId,
+        count: rows.length,
+        results: rows,
+        time_range: {
+          start: start || null,
+          end: end || null
+        },
+        generated_at: new Date().toISOString()
+      };
+    } catch (error) {
+      throw new BadRequestException(`Failed to retrieve comprehensive KPIs: ${error.message}`);
+    }
   }
 }

@@ -187,31 +187,31 @@ export default function LoopDetail() {
         spTag: loopData.sp_tag,
         importance: loopData.importance || 0.5,
         classification: 'normal', // Will be updated from diagnostics
-        serviceFactor: 0.85, // Will be updated from KPI data
-        pi: 0.78, // Will be updated from KPI data
-        rpi: 0.82, // Will be updated from KPI data
-        oscillationIndex: 0.12, // Will be updated from KPI data
-        stictionSeverity: 0.05, // Will be updated from KPI data
+        serviceFactor: 0, // Will be updated from KPI data
+        pi: 0, // Will be updated from KPI data
+        rpi: 0, // Will be updated from KPI data
+        oscillationIndex: 0, // Will be updated from KPI data
+        stictionSeverity: 0, // Will be updated from KPI data
         plantArea: 'Plant Area',
         criticality: loopData.importance > 7 ? 'high' : loopData.importance > 4 ? 'medium' : 'low',
         lastUpdated: loopData.updated_at || new Date().toISOString(),
-        deadband: 0.02,
-        saturation: 0.08,
+        deadband: 0,
+        saturation: 0,
         setpointChanges: 0,
         modeChanges: 0,
-        valveTravel: 0.75,
-        settlingTime: 45,
-        overshoot: 0.05,
-        riseTime: 30,
+        valveTravel: 0,
+        settlingTime: 0,
+        overshoot: 0,
+        riseTime: 0,
         peakError: 0,
         integralError: 0,
         derivativeError: 0,
-        controlError: 1.2,
-        valveReversals: 8,
-        noiseLevel: 0.03,
-        processGain: 0.5,
-        timeConstant: 60,
-        deadTime: 30
+        controlError: 0,
+        valveReversals: 0,
+        noiseLevel: 0,
+        processGain: 0,
+        timeConstant: 0,
+        deadTime: 0
       };
 
       setLoop(transformedLoop);
@@ -245,47 +245,77 @@ export default function LoopDetail() {
         });
       }
 
-      // Fetch raw trend data
-      try {
-        const endTime = new Date();
-        const startTime = new Date(endTime.getTime() - parseTimeWindow(timeWindow));
+             // Fetch raw trend data
+       try {
+         // Get the available data range from the database first
+         const dataRangeResponse = await axios.get(`${API}/loops/${id}/data/range`);
+         let dataStartTime, dataEndTime;
+         
+         try {
+           const rangeData = dataRangeResponse.data;
+           dataStartTime = new Date(rangeData.start);
+           dataEndTime = new Date(rangeData.end);
+         } catch (rangeError) {
+           // Fallback: use a reasonable default range if range endpoint fails
+           dataEndTime = new Date();
+           dataStartTime = new Date(dataEndTime.getTime() - (7 * 24 * 60 * 60 * 1000)); // 7 days ago
+         }
+         
+         // Calculate the requested time window within the available data range
+         const requestedWindow = parseTimeWindow(timeWindow);
+         const availableDuration = dataEndTime.getTime() - dataStartTime.getTime();
+         
+         // Always use the full available data range, regardless of requested window
+         // This ensures we show all available data
+         const endTime = dataEndTime;
+         const startTime = dataStartTime;
+         
+         console.log('Requested window:', timeWindow, '(', requestedWindow / (1000 * 60 * 60), 'hours)');
+         console.log('Available duration:', availableDuration / (1000 * 60 * 60), 'hours');
         
-        const dataResponse = await axios.get(`${API}/loops/${id}/data`, {
-          params: {
-            start: startTime.toISOString(),
-            end: endTime.toISOString(),
-            fields: 'pv,op,sp,mode,valve_position'
-          }
-        });
-        
-        const rawData = dataResponse.data;
-        const trendData: TrendData[] = [];
-        
-        if (rawData.ts && rawData.ts.length > 0) {
-          for (let i = 0; i < rawData.ts.length; i++) {
-            trendData.push({
-              timestamp: rawData.ts[i],
-              pv: rawData.pv?.[i] || 0,
-              sp: rawData.sp?.[i] || 0,
-              op: rawData.op?.[i] || 0,
-              mode: rawData.mode?.[i] || 'AUTO',
-              valvePosition: rawData.valve_position?.[i] || 0
-            });
-          }
-        }
-        
-        setTrendData(trendData);
-      } catch (dataError) {
-        console.warn('Could not fetch trend data:', dataError);
-        setTrendData([]);
-      }
+         console.log('Available data range:', dataStartTime.toISOString(), 'to:', dataEndTime.toISOString());
+         console.log('Fetching trend data from:', startTime.toISOString(), 'to:', endTime.toISOString());
+         
+         const dataResponse = await axios.get(`${API}/loops/${id}/data`, {
+           params: {
+             start: startTime.toISOString(),
+             end: endTime.toISOString(),
+             fields: 'pv,op,sp,mode,valve_position'
+           }
+         });
+         
+         const rawData = dataResponse.data;
+         console.log('Raw trend data response:', rawData);
+         
+         const trendData: TrendData[] = [];
+         
+         if (rawData.ts && rawData.ts.length > 0) {
+           for (let i = 0; i < rawData.ts.length; i++) {
+             trendData.push({
+               timestamp: rawData.ts[i],
+               pv: Number(rawData.pv?.[i]) || 0,
+               sp: Number(rawData.sp?.[i]) || 0,
+               op: Number(rawData.op?.[i]) || 0,
+               mode: rawData.mode?.[i] || 'AUTO',
+               valvePosition: Number(rawData.valve_position?.[i]) || 0
+             });
+           }
+         }
+         
+         console.log('Processed trend data:', trendData.length, 'points');
+         setTrendData(trendData);
+       } catch (dataError) {
+         console.warn('Could not fetch trend data:', dataError);
+         setTrendData([]);
+       }
 
-      // Fetch KPI history
+      // Fetch comprehensive KPI history
       try {
+        // Use a wider time window to ensure we get data
         const endTime = new Date();
-        const startTime = new Date(endTime.getTime() - parseTimeWindow(kpiWindow));
+        const startTime = new Date(endTime.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days
         
-        const kpiResponse = await axios.get(`${API}/loops/${id}/kpis`, {
+        const kpiResponse = await axios.get(`${API}/loops/${id}/kpis/comprehensive`, {
           params: {
             start: startTime.toISOString(),
             end: endTime.toISOString(),
@@ -294,33 +324,65 @@ export default function LoopDetail() {
         });
         
         const kpiResults = kpiResponse.data.results || [];
+        console.log('KPI Response:', kpiResponse.data);
+        console.log('KPI Results count:', kpiResults.length);
+        
         const kpiData: KPIData[] = kpiResults.map((kpi: any) => ({
           timestamp: kpi.timestamp,
-          serviceFactor: kpi.service_factor || 0,
-          pi: kpi.pi || 0,
-          rpi: kpi.rpi || 0,
-          oscillationIndex: kpi.osc_index || 0,
-          stictionIndex: kpi.stiction || 0
+          serviceFactor: Number(kpi.service_factor) || 0,
+          pi: Number(kpi.pi) || 0,
+          rpi: Number(kpi.rpi) || 0,
+          oscillationIndex: Number(kpi.osc_index) || 0,
+          stictionIndex: Number(kpi.stiction) || 0
         }));
         
         setKpiData(kpiData);
         
-        // Update loop with latest KPI data
+        // Update loop with latest comprehensive KPI data
         if (kpiResults.length > 0) {
           const latestKpi = kpiResults[0];
-          setLoop(prev => prev ? {
-            ...prev,
-            serviceFactor: latestKpi.service_factor || prev.serviceFactor,
-            pi: latestKpi.pi || prev.pi,
-            rpi: latestKpi.rpi || prev.rpi,
-            oscillationIndex: latestKpi.osc_index || prev.oscillationIndex,
-            stictionSeverity: latestKpi.stiction || prev.stictionSeverity,
-            saturation: latestKpi.sat_percent || prev.saturation,
-            valveTravel: latestKpi.output_travel || prev.valveTravel
-          } : prev);
+          console.log('Latest KPI data:', latestKpi);
+          
+          setLoop(prev => {
+            if (!prev) {
+              console.warn('Previous loop state is null, cannot update KPI data');
+              return prev;
+            }
+            
+            const updatedLoop = {
+              ...prev,
+              serviceFactor: Number(latestKpi.service_factor) || 0,
+              pi: Number(latestKpi.pi) || 0,
+              rpi: Number(latestKpi.rpi) || 0,
+              oscillationIndex: Number(latestKpi.osc_index) || 0,
+              stictionSeverity: Number(latestKpi.stiction) || 0,
+              saturation: Number(latestKpi.saturation) || 0,
+              valveTravel: Number(latestKpi.valve_travel) || 0,
+              deadband: Number(latestKpi.deadband) || 0,
+              settlingTime: Number(latestKpi.settling_time) || 0,
+              overshoot: Number(latestKpi.overshoot) || 0,
+              riseTime: Number(latestKpi.rise_time) || 0,
+              peakError: Number(latestKpi.peak_error) || 0,
+              integralError: Number(latestKpi.integral_error) || 0,
+              derivativeError: Number(latestKpi.derivative_error) || 0,
+              controlError: Number(latestKpi.control_error) || 0,
+              valveReversals: Number(latestKpi.valve_reversals) || 0,
+              noiseLevel: Number(latestKpi.noise_level) || 0,
+              processGain: Number(latestKpi.process_gain) || 0,
+              timeConstant: Number(latestKpi.time_constant) || 0,
+              deadTime: Number(latestKpi.dead_time) || 0,
+              setpointChanges: Number(latestKpi.setpoint_changes) || 0,
+              modeChanges: Number(latestKpi.mode_changes) || 0
+            };
+            
+            console.log('Updated loop with KPI data:', updatedLoop);
+            return updatedLoop;
+          });
+        } else {
+          console.warn('No KPI results found');
         }
       } catch (kpiError) {
-        console.warn('Could not fetch KPI data:', kpiError);
+        console.warn('Could not fetch comprehensive KPI data:', kpiError);
         setKpiData([]);
       }
 
@@ -453,6 +515,9 @@ export default function LoopDetail() {
     );
   }
 
+  // Debug: Log current loop state
+  console.log('Current loop state:', loop);
+
   return (
     <Box>
       {/* Metadata Panel */}
@@ -514,22 +579,29 @@ export default function LoopDetail() {
 
         {/* Live Trends Tab */}
         <TabPanel value={tabValue} index={0}>
-          <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
-            <Typography variant="h6">Live Trend Data</Typography>
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Time Window</InputLabel>
-              <Select
-                value={timeWindow}
-                label="Time Window"
-                onChange={(e) => setTimeWindow(e.target.value)}
-              >
-                <MenuItem value="30m">30 minutes</MenuItem>
-                <MenuItem value="1h">1 hour</MenuItem>
-                <MenuItem value="6h">6 hours</MenuItem>
-                <MenuItem value="24h">24 hours</MenuItem>
-              </Select>
-            </FormControl>
-          </Box>
+                     <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
+             <Typography variant="h6">Live Trend Data</Typography>
+             <Box display="flex" alignItems="center" gap={2}>
+               <Typography variant="body2" color="textSecondary">
+                 Available: {trendData.length > 0 ? 
+                   `${format(new Date(trendData[0]?.timestamp), 'MMM dd, HH:mm')} - ${format(new Date(trendData[trendData.length - 1]?.timestamp), 'MMM dd, HH:mm')}` : 
+                   'No data available'}
+               </Typography>
+               <FormControl size="small" sx={{ minWidth: 120 }}>
+                 <InputLabel>Time Window</InputLabel>
+                 <Select
+                   value={timeWindow}
+                   label="Time Window"
+                   onChange={(e) => setTimeWindow(e.target.value)}
+                 >
+                   <MenuItem value="1h">1 hour</MenuItem>
+                   <MenuItem value="6h">6 hours</MenuItem>
+                   <MenuItem value="24h">1 day</MenuItem>
+                   <MenuItem value="7d">1 week</MenuItem>
+                 </Select>
+               </FormControl>
+             </Box>
+           </Box>
           
           <ResponsiveContainer width="100%" height={400}>
             <LineChart data={trendData}>
@@ -540,10 +612,14 @@ export default function LoopDetail() {
               />
               <YAxis yAxisId="left" />
               <YAxis yAxisId="right" orientation="right" />
-              <RechartsTooltip 
-                labelFormatter={(value) => format(new Date(value), 'MMM dd, HH:mm:ss')}
-                formatter={(value: any, name: string) => [value.toFixed(2), name]}
-              />
+                             <RechartsTooltip 
+                 labelFormatter={(value) => format(new Date(value), 'MMM dd, HH:mm:ss')}
+                 formatter={(value: any, name: string) => {
+                   // Handle null, undefined, or non-numeric values
+                   const numValue = typeof value === 'number' ? value : parseFloat(value) || 0;
+                   return [numValue.toFixed(2), name];
+                 }}
+               />
               <Line 
                 yAxisId="left"
                 type="monotone" 
@@ -628,7 +704,11 @@ export default function LoopDetail() {
               <YAxis domain={[0, 1]} />
               <RechartsTooltip 
                 labelFormatter={(value) => format(new Date(value), 'MMM dd, HH:mm')}
-                formatter={(value: any, name: string) => [value.toFixed(3), name]}
+                formatter={(value: any, name: string) => {
+                  // Handle null, undefined, or non-numeric values
+                  const numValue = typeof value === 'number' ? value : parseFloat(value) || 0;
+                  return [numValue.toFixed(3), name];
+                }}
               />
               <Line type="monotone" dataKey="serviceFactor" stroke="#4caf50" name="Service Factor" />
               <Line type="monotone" dataKey="pi" stroke="#2196f3" name="PI" />
@@ -668,37 +748,37 @@ export default function LoopDetail() {
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Service Factor</Typography>
                       <Typography variant="h6" color={loop.serviceFactor > 0.7 ? 'success.main' : 'error.main'}>
-                        {(loop.serviceFactor * 100).toFixed(1)}%
+                        {((loop.serviceFactor || 0) * 100).toFixed(1)}%
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Performance Index</Typography>
                       <Typography variant="h6" color={loop.pi > 0.7 ? 'success.main' : 'error.main'}>
-                        {loop.pi.toFixed(3)}
+                        {(loop.pi || 0).toFixed(3)}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Relative PI</Typography>
                       <Typography variant="h6" color={loop.rpi > 0.7 ? 'success.main' : 'error.main'}>
-                        {loop.rpi.toFixed(3)}
+                        {(loop.rpi || 0).toFixed(3)}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Oscillation Index</Typography>
                       <Typography variant="h6" color={loop.oscillationIndex < 0.3 ? 'success.main' : 'error.main'}>
-                        {loop.oscillationIndex.toFixed(3)}
+                        {(loop.oscillationIndex || 0).toFixed(3)}
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Stiction Severity</Typography>
                       <Typography variant="h6" color={loop.stictionSeverity < 0.3 ? 'success.main' : 'error.main'}>
-                        {(loop.stictionSeverity * 100).toFixed(1)}%
+                        {((loop.stictionSeverity || 0) * 100).toFixed(1)}%
                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Deadband</Typography>
                       <Typography variant="h6" color={loop.deadband < 0.1 ? 'success.main' : 'error.main'}>
-                        {loop.deadband.toFixed(3)}
+                        {(loop.deadband || 0).toFixed(3)}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -716,46 +796,46 @@ export default function LoopDetail() {
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Saturation</Typography>
-                      <Typography variant="h6" color={loop.saturation < 0.2 ? 'success.main' : 'error.main'}>
-                        {(loop.saturation * 100).toFixed(1)}%
-                      </Typography>
+                                             <Typography variant="h6" color={loop.saturation < 0.2 ? 'success.main' : 'error.main'}>
+                         {((loop.saturation || 0) * 100).toFixed(1)}%
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Valve Travel</Typography>
-                      <Typography variant="h6" color={loop.valveTravel > 0.5 ? 'success.main' : 'warning.main'}>
-                        {(loop.valveTravel * 100).toFixed(1)}%
-                      </Typography>
+                                             <Typography variant="h6" color={loop.valveTravel > 0.5 ? 'success.main' : 'warning.main'}>
+                         {((loop.valveTravel || 0) * 100).toFixed(1)}%
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Settling Time</Typography>
-                      <Typography variant="h6" color={loop.settlingTime < 120 ? 'success.main' : 'warning.main'}>
-                        {loop.settlingTime}s
-                      </Typography>
+                                             <Typography variant="h6" color={loop.settlingTime < 120 ? 'success.main' : 'warning.main'}>
+                         {loop.settlingTime || 0}s
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Overshoot</Typography>
-                      <Typography variant="h6" color={loop.overshoot < 0.1 ? 'success.main' : 'error.main'}>
-                        {(loop.overshoot * 100).toFixed(1)}%
-                      </Typography>
+                                             <Typography variant="h6" color={loop.overshoot < 0.1 ? 'success.main' : 'error.main'}>
+                         {((loop.overshoot || 0) * 100).toFixed(1)}%
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Rise Time</Typography>
-                      <Typography variant="h6" color={loop.riseTime < 300 ? 'success.main' : 'warning.main'}>
-                        {loop.riseTime}s
-                      </Typography>
+                                             <Typography variant="h6" color={loop.riseTime < 300 ? 'success.main' : 'warning.main'}>
+                         {loop.riseTime || 0}s
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Peak Error</Typography>
-                      <Typography variant="h6" color={loop.peakError < 5 ? 'success.main' : 'error.main'}>
-                        {loop.peakError.toFixed(1)}
-                      </Typography>
-                    </Grid>
-                  </Grid>
-                </CardContent>
-              </Card>
-            </Grid>
+                                             <Typography variant="h6" color={loop.peakError < 5 ? 'success.main' : 'error.main'}>
+                         {(loop.peakError || 0).toFixed(1)}
+                       </Typography>
+                     </Grid>
+                   </Grid>
+                 </CardContent>
+               </Card>
+             </Grid>
 
-            {/* Process Characteristics */}
+             {/* Process Characteristics */}
             <Grid item xs={12} md={6}>
               <Card>
                 <CardContent>
@@ -765,27 +845,27 @@ export default function LoopDetail() {
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Process Gain</Typography>
-                      <Typography variant="h6">
-                        {loop.processGain.toFixed(2)}
-                      </Typography>
+                                             <Typography variant="h6">
+                         {(loop.processGain || 0).toFixed(2)}
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Time Constant</Typography>
-                      <Typography variant="h6">
-                        {loop.timeConstant}s
-                      </Typography>
+                                             <Typography variant="h6">
+                         {loop.timeConstant || 0}s
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Dead Time</Typography>
-                      <Typography variant="h6">
-                        {loop.deadTime}s
-                      </Typography>
+                                             <Typography variant="h6">
+                         {loop.deadTime || 0}s
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Noise Level</Typography>
-                      <Typography variant="h6" color={loop.noiseLevel < 0.1 ? 'success.main' : 'error.main'}>
-                        {loop.noiseLevel.toFixed(3)}
-                      </Typography>
+                                             <Typography variant="h6" color={loop.noiseLevel < 0.1 ? 'success.main' : 'error.main'}>
+                         {(loop.noiseLevel || 0).toFixed(3)}
+                       </Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -802,27 +882,27 @@ export default function LoopDetail() {
                   <Grid container spacing={2}>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Setpoint Changes</Typography>
-                      <Typography variant="h6">
-                        {loop.setpointChanges}
-                      </Typography>
+                                             <Typography variant="h6">
+                         {loop.setpointChanges || 0}
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Mode Changes</Typography>
-                      <Typography variant="h6">
-                        {loop.modeChanges}
-                      </Typography>
+                                             <Typography variant="h6">
+                         {loop.modeChanges || 0}
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Valve Reversals</Typography>
-                      <Typography variant="h6" color={loop.valveReversals < 15 ? 'success.main' : 'error.main'}>
-                        {loop.valveReversals}
-                      </Typography>
+                                             <Typography variant="h6" color={loop.valveReversals < 15 ? 'success.main' : 'error.main'}>
+                         {loop.valveReversals || 0}
+                       </Typography>
                     </Grid>
                     <Grid item xs={6}>
                       <Typography variant="body2" color="textSecondary">Control Error</Typography>
-                      <Typography variant="h6" color={loop.controlError < 3 ? 'success.main' : 'error.main'}>
-                        {loop.controlError.toFixed(2)}
-                      </Typography>
+                                             <Typography variant="h6" color={loop.controlError < 3 ? 'success.main' : 'error.main'}>
+                         {(loop.controlError || 0).toFixed(2)}
+                       </Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
@@ -839,27 +919,27 @@ export default function LoopDetail() {
                   <Grid container spacing={2}>
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Integral Error</Typography>
-                      <Typography variant="h6" color={loop.integralError < 30 ? 'success.main' : 'error.main'}>
-                        {loop.integralError.toFixed(1)}
-                      </Typography>
+                                             <Typography variant="h6" color={loop.integralError < 30 ? 'success.main' : 'error.main'}>
+                         {(loop.integralError || 0).toFixed(1)}
+                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Derivative Error</Typography>
-                      <Typography variant="h6" color={loop.derivativeError < 2 ? 'success.main' : 'error.main'}>
-                        {loop.derivativeError.toFixed(1)}
-                      </Typography>
+                                             <Typography variant="h6" color={loop.derivativeError < 2 ? 'success.main' : 'error.main'}>
+                         {(loop.derivativeError || 0).toFixed(1)}
+                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Peak Error</Typography>
-                      <Typography variant="h6" color={loop.peakError < 5 ? 'success.main' : 'error.main'}>
-                        {loop.peakError.toFixed(1)}
-                      </Typography>
+                                             <Typography variant="h6" color={loop.peakError < 5 ? 'success.main' : 'error.main'}>
+                         {(loop.peakError || 0).toFixed(1)}
+                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Control Error</Typography>
                       <Typography variant="h6" color={loop.controlError < 3 ? 'success.main' : 'error.main'}>
-                        {loop.controlError.toFixed(1)}
-                      </Typography>
+                         {(loop.controlError || 0).toFixed(1)}
+                       </Typography>
                     </Grid>
                   </Grid>
                 </CardContent>
