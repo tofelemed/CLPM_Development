@@ -390,7 +390,9 @@ For support and questions:
 
 
 
-
-opcua client for backend
-connect it with front end
-cors erros
+Change your pgAdmin connection settings to:
+Host name/address: clpm-postgres (not clpm-db or localhost)
+Port: 5432
+Maintenance database: clpm
+Username: clpm
+Password: clpm123

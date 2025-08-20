@@ -1,25 +1,26 @@
 import 'dotenv/config';
 import pino from 'pino';
 import { Pool } from 'pg';
-import { createChannel } from './rabbit.js';
+import { InfluxDBClient } from './influxClient.js';
 
 const log = pino({ name: 'aggregation-service' });
 
 class AggregationService {
   constructor() {
     this.db = null;
-    this.rabbitChannel = null;
+    this.influxClient = null;
     this.aggregationIntervals = {
       '1m': 60 * 1000,      // 1 minute
       '1h': 60 * 60 * 1000  // 1 hour
     };
-    this.aggregationBuffer = new Map(); // loopId -> buffer
+    this.activeLoops = new Map();
     this.isRunning = false;
+    this.pollingInterval = null;
   }
 
   async connect() {
     try {
-      // Connect to database
+      // Connect to PostgreSQL database
       this.db = new Pool({
         host: process.env.DB_HOST || 'localhost',
         port: process.env.DB_PORT || 5432,
@@ -36,115 +37,158 @@ class AggregationService {
       await client.query('SELECT 1');
       client.release();
 
-      // Connect to RabbitMQ
-      this.rabbitChannel = await createChannel(
-        process.env.RABBITMQ_URL || 'amqp://localhost',
-        process.env.RABBITMQ_EXCHANGE || 'clpm'
-      );
+      // Initialize InfluxDB client
+      this.influxClient = new InfluxDBClient({
+        url: process.env.INFLUXDB_URL || 'http://localhost:8086',
+        token: process.env.INFLUXDB_TOKEN,
+        org: process.env.INFLUXDB_ORG,
+        bucket: process.env.INFLUXDB_BUCKET || 'clpm',
+        measurement: process.env.INFLUXDB_MEASUREMENT || 'control_loops'
+      });
 
-      // Set up consumer for raw samples
-      await this.setupRawSampleConsumer();
+      // Test InfluxDB connection
+      const influxConnected = await this.influxClient.testConnection();
+      if (!influxConnected) {
+        throw new Error('Failed to connect to InfluxDB');
+      }
 
-      log.info('Aggregation service connected to database and RabbitMQ');
+      log.info('Aggregation service connected to PostgreSQL and InfluxDB');
     } catch (error) {
       log.error({ error: error.message }, 'Failed to connect to services');
       throw error;
     }
   }
 
-  async setupRawSampleConsumer() {
+  async initializeLoops() {
     try {
-      const queueName = 'aggregation-raw-samples';
-      
-      // Ensure queue exists
-      await this.rabbitChannel.assertQueue(queueName, { durable: true });
-      
-      // Bind to all loop routing keys
-      await this.rabbitChannel.bindQueue(queueName, process.env.RABBITMQ_EXCHANGE || 'clpm', 'loop.*');
-      
-      // Consume messages
-      await this.rabbitChannel.consume(queueName, async (msg) => {
-        if (msg) {
-          try {
-            const sample = JSON.parse(msg.content.toString());
-            await this.processRawSample(sample);
-            this.rabbitChannel.ack(msg);
-          } catch (error) {
-            log.error({ error: error.message, content: msg.content.toString() }, 'Failed to process raw sample');
-            // Reject message and requeue
-            this.rabbitChannel.nack(msg, false, true);
-          }
-        }
-      });
-
-      log.info('Raw sample consumer set up successfully');
+      const loops = await this.getActiveLoops();
+      for (const loop of loops) {
+        this.activeLoops.set(loop.id, loop);
+      }
+      log.info({ count: loops.length }, 'Initialized loops from database');
     } catch (error) {
-      log.error({ error: error.message }, 'Failed to set up raw sample consumer');
+      log.error({ error: error.message }, 'Failed to initialize loops from database');
+    }
+  }
+
+  async getActiveLoops() {
+    try {
+      const query = `
+        SELECT id, name, pv_tag, op_tag, sp_tag, mode_tag, valve_tag, importance
+        FROM loops 
+        WHERE deleted_at IS NULL
+        ORDER BY importance DESC, created_at ASC
+      `;
+      
+      const result = await this.db.query(query);
+      return result.rows;
+    } catch (error) {
+      log.error({ error: error.message }, 'Failed to get active loops');
       throw error;
     }
   }
 
-  async processRawSample(sample) {
-    try {
-      const { loop_id, ts } = sample;
-      
-      // Add to aggregation buffer
-      if (!this.aggregationBuffer.has(loop_id)) {
-        this.aggregationBuffer.set(loop_id, new Map());
+  async startPolling() {
+    if (this.isRunning) return;
+    
+    this.isRunning = true;
+    
+    // Poll InfluxDB every 30 seconds for new data
+    this.pollingInterval = setInterval(async () => {
+      try {
+        await this.pollInfluxDBData();
+      } catch (error) {
+        log.error({ error: error.message }, 'Polling InfluxDB failed');
       }
-      
-      const loopBuffer = this.aggregationBuffer.get(loop_id);
-      
-      // Process for each aggregation interval
-      for (const [interval, intervalMs] of Object.entries(this.aggregationIntervals)) {
-        const bucket = this.getBucketTimestamp(ts, intervalMs);
-        const bucketKey = bucket.toISOString();
-        
-        if (!loopBuffer.has(interval)) {
-          loopBuffer.set(interval, new Map());
-        }
-        
-        const intervalBuffer = loopBuffer.get(interval);
-        
-        if (!intervalBuffer.has(bucketKey)) {
-          intervalBuffer.set(bucketKey, {
-            bucket,
-            loop_id,
-            pv_values: [],
-            op_values: [],
-            sp_values: [],
-            mode_changes: 0,
-            count: 0
-          });
-        }
-        
-        const bucketData = intervalBuffer.get(bucketKey);
-        
-        // Add values
-        if (sample.pv !== undefined) bucketData.pv_values.push(sample.pv);
-        if (sample.op !== undefined) bucketData.op_values.push(sample.op);
-        if (sample.sp !== undefined) bucketData.sp_values.push(sample.sp);
-        bucketData.count++;
-        
-        // Check for mode changes (if we have previous value)
-        if (sample.mode !== undefined) {
-          const lastKey = Array.from(intervalBuffer.keys()).sort().pop();
-          if (lastKey && lastKey !== bucketKey) {
-            const lastBucket = intervalBuffer.get(lastKey);
-            if (lastBucket.mode !== sample.mode) {
-              bucketData.mode_changes++;
-            }
-          }
-        }
-      }
-      
-      // Flush completed buckets
-      await this.flushCompletedBuckets();
-      
-    } catch (error) {
-      log.error({ sample, error: error.message }, 'Failed to process raw sample');
-      throw error;
+    }, 30000); // 30 seconds
+    
+    log.info('Started polling InfluxDB for data');
+  }
+
+  async stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
     }
+    this.isRunning = false;
+    log.info('Stopped polling InfluxDB');
+  }
+
+  async pollInfluxDBData() {
+    try {
+      const now = new Date();
+      const oneMinuteAgo = new Date(now.getTime() - 60 * 1000);
+      
+      for (const [loopId, loop] of this.activeLoops) {
+        try {
+          // Query recent data from InfluxDB
+          const data = await this.influxClient.queryData(
+            loopId,
+            oneMinuteAgo.toISOString(),
+            now.toISOString()
+          );
+          
+          if (data.length > 0) {
+            // Process and aggregate the data
+            await this.processInfluxDBData(loopId, data);
+          }
+        } catch (error) {
+          log.error({ loopId, error: error.message }, 'Failed to poll data for loop');
+        }
+      }
+    } catch (error) {
+      log.error({ error: error.message }, 'Failed to poll InfluxDB data');
+    }
+  }
+
+  async processInfluxDBData(loopId, data) {
+    try {
+      // Group data by time buckets
+      const buckets = this.groupDataByBuckets(data);
+      
+      // Process each bucket
+      for (const [bucketKey, bucketData] of buckets) {
+        await this.processBucket(loopId, bucketData);
+      }
+      
+      log.debug({ loopId, dataCount: data.length, bucketCount: buckets.size }, 'Processed InfluxDB data');
+    } catch (error) {
+      log.error({ loopId, error: error.message }, 'Failed to process InfluxDB data');
+    }
+  }
+
+  groupDataByBuckets(data) {
+    const buckets = new Map();
+    
+    for (const sample of data) {
+      // Create 1-minute buckets
+      const bucketTime = this.getBucketTimestamp(sample.ts, this.aggregationIntervals['1m']);
+      const bucketKey = bucketTime.toISOString();
+      
+      if (!buckets.has(bucketKey)) {
+        buckets.set(bucketKey, {
+          bucket: bucketTime,
+          loop_id: sample.loop_id,
+          pv_values: [],
+          op_values: [],
+          sp_values: [],
+          mode_values: [],
+          valve_values: [],
+          count: 0
+        });
+      }
+      
+      const bucket = buckets.get(bucketKey);
+      
+      if (sample.pv !== null) bucket.pv_values.push(sample.pv);
+      if (sample.op !== null) bucket.op_values.push(sample.op);
+      if (sample.sp !== null) bucket.sp_values.push(sample.sp);
+      if (sample.mode !== null) bucket.mode_values.push(sample.mode);
+      if (sample.valve_position !== null) bucket.valve_values.push(sample.valve_position);
+      bucket.count++;
+    }
+    
+    return buckets;
   }
 
   getBucketTimestamp(timestamp, intervalMs) {
@@ -153,42 +197,9 @@ class AggregationService {
     return bucketTime;
   }
 
-  async flushCompletedBuckets() {
+  async processBucket(loopId, bucketData) {
     try {
-      const now = new Date();
-      
-      for (const [loopId, loopBuffer] of this.aggregationBuffer) {
-        for (const [interval, intervalBuffer] of loopBuffer) {
-          const intervalMs = this.aggregationIntervals[interval];
-          const currentBucket = this.getBucketTimestamp(now, intervalMs);
-          
-          // Find completed buckets (older than current bucket)
-          const completedBuckets = Array.from(intervalBuffer.entries())
-            .filter(([bucketKey, bucketData]) => bucketData.bucket < currentBucket);
-          
-          for (const [bucketKey, bucketData] of completedBuckets) {
-            try {
-              await this.flushBucket(loopId, interval, bucketData);
-              intervalBuffer.delete(bucketKey);
-            } catch (error) {
-              log.error({ 
-                loopId, 
-                interval, 
-                bucket: bucketKey, 
-                error: error.message 
-              }, 'Failed to flush bucket');
-            }
-          }
-        }
-      }
-    } catch (error) {
-      log.error({ error: error.message }, 'Failed to flush completed buckets');
-    }
-  }
-
-  async flushBucket(loopId, interval, bucketData) {
-    try {
-      const { bucket, pv_values, op_values, sp_values, mode_changes, count } = bucketData;
+      const { bucket, pv_values, op_values, sp_values, count } = bucketData;
       
       if (count === 0) return;
       
@@ -200,15 +211,41 @@ class AggregationService {
       const op_avg = op_values.length > 0 ? op_values.reduce((a, b) => a + b, 0) / op_values.length : null;
       const sp_avg = sp_values.length > 0 ? sp_values.reduce((a, b) => a + b, 0) / sp_values.length : null;
       
-      // Determine table name based on interval
-      const tableName = interval === '1h' ? 'agg_1h' : 'agg_1m';
-      const timeColumn = interval === '1h' ? 'bucket' : 'bucket';
+      // Store aggregated data in PostgreSQL
+      await this.storeAggregatedData(loopId, bucket, {
+        pv_avg,
+        pv_min,
+        pv_max,
+        pv_count: count,
+        op_avg,
+        sp_avg
+      });
       
-      // Insert aggregated data
+      log.debug({ 
+        loopId, 
+        bucket: bucket.toISOString(), 
+        count,
+        pv_avg,
+        op_avg,
+        sp_avg
+      }, 'Bucket processed and stored');
+      
+    } catch (error) {
+      log.error({ 
+        loopId, 
+        bucket: bucketData.bucket, 
+        error: error.message 
+      }, 'Failed to process bucket');
+      throw error;
+    }
+  }
+
+  async storeAggregatedData(loopId, bucket, aggregates) {
+    try {
       const query = `
-        INSERT INTO ${tableName} (${timeColumn}, loop_id, pv_avg, pv_min, pv_max, pv_count, op_avg, sp_avg)
+        INSERT INTO agg_1m (bucket, loop_id, pv_avg, pv_min, pv_max, pv_count, op_avg, sp_avg)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (${timeColumn}, loop_id) 
+        ON CONFLICT (bucket, loop_id) 
         DO UPDATE SET
           pv_avg = EXCLUDED.pv_avg,
           pv_min = EXCLUDED.pv_min,
@@ -222,69 +259,74 @@ class AggregationService {
       const values = [
         bucket,
         loopId,
-        pv_avg,
-        pv_min,
-        pv_max,
-        count,
-        op_avg,
-        sp_avg
+        aggregates.pv_avg,
+        aggregates.pv_min,
+        aggregates.pv_max,
+        aggregates.pv_count,
+        aggregates.op_avg,
+        aggregates.sp_avg
       ];
       
       await this.db.query(query, values);
       
-      log.debug({ 
-        loopId, 
-        interval, 
-        bucket: bucket.toISOString(), 
-        count 
-      }, 'Bucket flushed successfully');
-      
     } catch (error) {
       log.error({ 
         loopId, 
-        interval, 
-        bucket: bucketData.bucket, 
+        bucket: bucket.toISOString(), 
         error: error.message 
-      }, 'Failed to flush bucket');
+      }, 'Failed to store aggregated data');
       throw error;
     }
   }
 
-  async startPeriodicFlush() {
-    if (this.isRunning) return;
-    
-    this.isRunning = true;
-    
-    // Flush every 30 seconds
-    const flushInterval = setInterval(async () => {
-      try {
-        await this.flushCompletedBuckets();
-      } catch (error) {
-        log.error({ error: error.message }, 'Periodic flush failed');
+  async performHistoricalAggregation() {
+    try {
+      log.info('Starting historical aggregation for all loops');
+      
+      for (const [loopId, loop] of this.activeLoops) {
+        try {
+          // Get data range from InfluxDB
+          const dataRange = await this.influxClient.getDataRange(loopId);
+          
+          // Query aggregated data from InfluxDB
+          const aggregatedData = await this.influxClient.queryAggregatedData(
+            loopId,
+            dataRange.start.toISOString(),
+            dataRange.end.toISOString(),
+            '1m'
+          );
+          
+          // Store aggregated data in PostgreSQL
+          for (const data of aggregatedData) {
+            await this.storeAggregatedData(loopId, data.bucket, {
+              pv_avg: data.pv_avg,
+              pv_min: null, // InfluxDB aggregation doesn't provide min/max
+              pv_max: null,
+              pv_count: data.pv_count,
+              op_avg: data.op_avg,
+              sp_avg: data.sp_avg
+            });
+          }
+          
+          log.info({ loopId, count: aggregatedData.length }, 'Historical aggregation completed for loop');
+          
+        } catch (error) {
+          log.error({ loopId, error: error.message }, 'Failed to perform historical aggregation for loop');
+        }
       }
-    }, 30000);
-    
-    // Store interval for cleanup
-    this.flushInterval = flushInterval;
-    
-    log.info('Periodic flush started');
-  }
-
-  async stopPeriodicFlush() {
-    if (this.flushInterval) {
-      clearInterval(this.flushInterval);
-      this.flushInterval = null;
+      
+      log.info('Historical aggregation completed for all loops');
+    } catch (error) {
+      log.error({ error: error.message }, 'Failed to perform historical aggregation');
     }
-    this.isRunning = false;
-    log.info('Periodic flush stopped');
   }
 
   async disconnect() {
     try {
-      await this.stopPeriodicFlush();
+      await this.stopPolling();
       
-      if (this.rabbitChannel) {
-        await this.rabbitChannel.close();
+      if (this.influxClient) {
+        await this.influxClient.close();
       }
       
       if (this.db) {
@@ -304,7 +346,11 @@ const aggregationService = new AggregationService();
 (async () => {
   try {
     await aggregationService.connect();
-    await aggregationService.startPeriodicFlush();
+    await aggregationService.initializeLoops();
+    await aggregationService.startPolling();
+    
+    // Perform initial historical aggregation
+    await aggregationService.performHistoricalAggregation();
     
     log.info('Aggregation service started successfully');
     

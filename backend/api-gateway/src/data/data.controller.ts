@@ -1,30 +1,56 @@
-import { Controller, Get, Param, Query } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Controller, Get, Query, BadRequestException } from '@nestjs/common';
 import { DataService } from './data.service';
-import { Roles } from '../auth/roles.decorator';
 
-@ApiTags('data')
-@ApiBearerAuth()
-@Controller('loops/:id/data')
+@Controller('data')
 export class DataController {
-  constructor(private readonly service: DataService) {}
+  constructor(private dataService: DataService) {}
 
-  @Get()
-  getData(
-    @Param('id') id: string,
+  @Get('raw')
+  async getRawData(
+    @Query('loopId') loopId: string,
     @Query('start') start: string,
     @Query('end') end: string,
-    @Query('fields') fields?: string,
+    @Query('fields') fields: string,
     @Query('interval') interval?: string,
     @Query('limit') limit?: string
   ) {
-    const f = fields ? fields.split(',') : ['pv','op','sp','mode'];
+    if (!loopId) throw new BadRequestException('loopId required');
+    
+    const fieldArray = fields ? fields.split(',') : ['pv', 'op', 'sp'];
     const limitNum = limit ? parseInt(limit) : undefined;
-    return this.service.queryRaw(id, start, end, f, interval, limitNum);
+    
+    return await this.dataService.queryRaw(loopId, start, end, fieldArray, interval, limitNum);
+  }
+
+  @Get('aggregated')
+  async getAggregatedData(
+    @Query('loopId') loopId: string,
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @Query('interval') interval: string = '1m'
+  ) {
+    if (!loopId) throw new BadRequestException('loopId required');
+    if (!start || !end) throw new BadRequestException('start/end required');
+    
+    return await this.dataService.queryAggregated(loopId, start, end, interval);
+  }
+
+  @Get('realtime')
+  async getRealTimeData(
+    @Query('loopId') loopId: string,
+    @Query('fields') fields: string
+  ) {
+    if (!loopId) throw new BadRequestException('loopId required');
+    
+    const fieldArray = fields ? fields.split(',') : ['pv', 'op', 'sp'];
+    
+    return await this.dataService.getRealTimeData(loopId, fieldArray);
   }
 
   @Get('range')
-  getDataRange(@Param('id') id: string) {
-    return this.service.getDataRange(id); 
+  async getDataRange(@Query('loopId') loopId: string) {
+    if (!loopId) throw new BadRequestException('loopId required');
+    
+    return await this.dataService.getDataRange(loopId);
   }
 }

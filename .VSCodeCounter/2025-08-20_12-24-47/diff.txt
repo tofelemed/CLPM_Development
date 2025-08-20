@@ -1,0 +1,146 @@
+Date : 2025-08-20 12:24:47
+Directory : l:\Office\CLPM\clpm-app-latest\backend
+Total : 81 files,  -5897 codes, -103 comments, -233 blanks, all -6233 lines
+
+Languages
++--------------------+------------+------------+------------+------------+------------+
+| language           | files      | code       | comment    | blank      | total      |
++--------------------+------------+------------+------------+------------+------------+
+| TypeScript         |         36 |        982 |         16 |        136 |      1,134 |
+| JavaScript         |          6 |        948 |         46 |        188 |      1,182 |
+| JSON               |          4 |         87 |          0 |          2 |         89 |
+| Docker             |          4 |         16 |         -1 |          2 |         17 |
+| JSON with Comments |          2 |          4 |          0 |          0 |          4 |
+| HTML               |          1 |        -12 |          0 |         -1 |        -13 |
+| CSS                |          1 |        -56 |          0 |         -4 |        -60 |
+| TypeScript JSX     |         27 |     -7,866 |       -164 |       -556 |     -8,586 |
++--------------------+------------+------------+------------+------------+------------+
+
+Directories
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| path                                                                                         | files      | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+| .                                                                                            |         81 |     -5,897 |       -103 |       -233 |     -6,233 |
+| ..                                                                                           |         39 |     -8,776 |       -206 |       -677 |     -9,659 |
+| ..\frontend                                                                                  |         39 |     -8,776 |       -206 |       -677 |     -9,659 |
+| ..\frontend (Files)                                                                          |          7 |       -158 |         -4 |        -11 |       -173 |
+| ..\frontend\src                                                                              |         32 |     -8,618 |       -202 |       -666 |     -9,486 |
+| ..\frontend\src (Files)                                                                      |          4 |       -176 |         -7 |        -20 |       -203 |
+| ..\frontend\src\components                                                                   |         14 |     -2,880 |        -54 |       -265 |     -3,199 |
+| ..\frontend\src\components (Files)                                                           |          2 |     -1,112 |        -18 |        -97 |     -1,227 |
+| ..\frontend\src\components\opcua                                                             |          4 |     -1,328 |        -32 |       -110 |     -1,470 |
+| ..\frontend\src\components\ui                                                                |          8 |       -440 |         -4 |        -58 |       -502 |
+| ..\frontend\src\contexts                                                                     |          1 |       -131 |         -8 |        -19 |       -158 |
+| ..\frontend\src\hooks                                                                        |          1 |       -350 |        -13 |        -44 |       -407 |
+| ..\frontend\src\pages                                                                        |         10 |     -4,743 |        -96 |       -259 |     -5,098 |
+| ..\frontend\src\services                                                                     |          1 |       -175 |        -15 |        -39 |       -229 |
+| ..\frontend\src\types                                                                        |          1 |       -163 |         -9 |        -20 |       -192 |
+| aggregation                                                                                  |          4 |        525 |         18 |         87 |        630 |
+| aggregation (Files)                                                                          |          2 |         32 |          0 |          2 |         34 |
+| aggregation\src                                                                              |          2 |        493 |         18 |         85 |        596 |
+| api-gateway                                                                                  |         34 |      1,809 |         56 |        250 |      2,115 |
+| api-gateway (Files)                                                                          |          3 |        112 |          0 |          4 |        116 |
+| api-gateway\src                                                                              |         31 |      1,697 |         56 |        246 |      1,999 |
+| api-gateway\src (Files)                                                                      |          2 |         72 |          3 |          6 |         81 |
+| api-gateway\src\auth                                                                         |          5 |         69 |          1 |         12 |         82 |
+| api-gateway\src\data                                                                         |          3 |        175 |         13 |         39 |        227 |
+| api-gateway\src\diagnostics                                                                  |          3 |         60 |          0 |         10 |         70 |
+| api-gateway\src\kpi                                                                          |          3 |        466 |         11 |         56 |        533 |
+| api-gateway\src\loops                                                                        |         11 |        620 |         24 |         86 |        730 |
+| api-gateway\src\loops (Files)                                                                |          5 |        540 |         20 |         70 |        630 |
+| api-gateway\src\loops\dto                                                                    |          4 |         38 |          0 |          7 |         45 |
+| api-gateway\src\loops\entities                                                               |          2 |         42 |          4 |          9 |         55 |
+| api-gateway\src\opcua                                                                        |          2 |         51 |          4 |         11 |         66 |
+| api-gateway\src\shared                                                                       |          2 |        184 |          0 |         26 |        210 |
+| kpi-worker                                                                                   |          4 |        545 |         29 |        107 |        681 |
+| kpi-worker (Files)                                                                           |          2 |         33 |          0 |          2 |         35 |
+| kpi-worker\src                                                                               |          2 |        512 |         29 |        105 |        646 |
++----------------------------------------------------------------------------------------------+------------+------------+------------+------------+------------+
+
+Files
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| filename                                                                                     | language           | code       | comment    | blank      | total      |
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\Dockerfile                                | Docker             |          7 |          0 |          1 |          8 |
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\package.json                              | JSON               |         25 |          0 |          1 |         26 |
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\src\index.js                              | JavaScript         |        302 |         18 |         58 |        378 |
+| l:\Office\CLPM\clpm-app-latest\backend\aggregation\src\influxClient.js                       | JavaScript         |        191 |          0 |         27 |        218 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\Dockerfile                                | Docker             |         15 |          0 |          2 |         17 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\package.json                              | JSON               |         81 |          0 |          1 |         82 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\app.module.ts                         | TypeScript         |         51 |          3 |          2 |         56 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\auth.module.ts                   | TypeScript         |          9 |          0 |          2 |         11 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\jwt.guard.ts                     | TypeScript         |          4 |          0 |          2 |          6 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\jwt.strategy.ts                  | TypeScript         |         35 |          1 |          4 |         40 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\roles.decorator.ts               | TypeScript         |          4 |          0 |          1 |          5 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\auth\roles.guard.ts                   | TypeScript         |         17 |          0 |          3 |         20 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\data\data.controller.ts               | TypeScript         |         45 |          0 |         12 |         57 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\data\data.module.ts                   | TypeScript         |         11 |          0 |          2 |         13 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\data\data.service.ts                  | TypeScript         |        119 |         13 |         25 |        157 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\diagnostics\diagnostics.controller.ts | TypeScript         |         37 |          0 |          5 |         42 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\diagnostics\diagnostics.module.ts     | TypeScript         |         11 |          0 |          2 |         13 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\diagnostics\diagnostics.service.ts    | TypeScript         |         12 |          0 |          3 |         15 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\kpi\kpi.controller.ts                 | TypeScript         |         60 |          0 |          6 |         66 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\kpi\kpi.module.ts                     | TypeScript         |          9 |          0 |          2 |         11 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\kpi\kpi.service.ts                    | TypeScript         |        397 |         11 |         48 |        456 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\dto\create-loop-config.dto.ts   | TypeScript         |         20 |          0 |          3 |         23 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\dto\create-loop.dto.ts          | TypeScript         |         12 |          0 |          2 |         14 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\dto\update-loop-config.dto.ts   | TypeScript         |          3 |          0 |          1 |          4 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\dto\update-loop.dto.ts          | TypeScript         |          3 |          0 |          1 |          4 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\entities\loop-config.entity.ts  | TypeScript         |         26 |          4 |          7 |         37 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\entities\loop.entity.ts         | TypeScript         |         16 |          0 |          2 |         18 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\loop-config.service.ts          | TypeScript         |        115 |          9 |         22 |        146 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\loops.controller.ts             | TypeScript         |        201 |          5 |         16 |        222 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\loops.module.ts                 | TypeScript         |         19 |          0 |          2 |         21 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\loops.service.ts                | TypeScript         |         50 |          0 |          7 |         57 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\loops\opcua.service.ts                | TypeScript         |        155 |          6 |         23 |        184 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\main.ts                               | TypeScript         |         21 |          0 |          4 |         25 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\opcua\opcua-proxy.controller.ts       | TypeScript         |         43 |          4 |          9 |         56 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\opcua\opcua-proxy.module.ts           | TypeScript         |          8 |          0 |          2 |         10 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\shared\influxdb.service.ts            | TypeScript         |        175 |          0 |         24 |        199 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\src\shared\pg.service.ts                  | TypeScript         |          9 |          0 |          2 |         11 |
+| l:\Office\CLPM\clpm-app-latest\backend\api-gateway\tsconfig.json                             | JSON with Comments |         16 |          0 |          1 |         17 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\Dockerfile                                 | Docker             |          7 |          0 |          1 |          8 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\package.json                               | JSON               |         26 |          0 |          1 |         27 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\src\index.js                               | JavaScript         |        382 |         29 |         86 |        497 |
+| l:\Office\CLPM\clpm-app-latest\backend\kpi-worker\src\influxClient.js                        | JavaScript         |        130 |          0 |         19 |        149 |
+| l:\Office\CLPM\clpm-app-latest\frontend\Dockerfile                                           | Docker             |        -13 |         -1 |         -2 |        -16 |
+| l:\Office\CLPM\clpm-app-latest\frontend\index.html                                           | HTML               |        -12 |          0 |         -1 |        -13 |
+| l:\Office\CLPM\clpm-app-latest\frontend\package.json                                         | JSON               |        -45 |          0 |         -1 |        -46 |
+| l:\Office\CLPM\clpm-app-latest\frontend\postcss.config.js                                    | JavaScript         |         -6 |          0 |         -1 |         -7 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\App.tsx                                          | TypeScript JSX     |       -103 |         -6 |        -11 |       -120 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\AppShell.tsx                          | TypeScript JSX     |       -251 |         -2 |        -17 |       -270 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\LoopConfiguration.tsx                 | TypeScript JSX     |       -861 |        -16 |        -80 |       -957 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\opcua\HealthDashboard.tsx             | TypeScript JSX     |       -297 |         -8 |        -20 |       -325 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\opcua\ServerForm.tsx                  | TypeScript JSX     |       -411 |         -5 |        -43 |       -459 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\opcua\ServerManager.tsx               | TypeScript JSX     |       -277 |        -10 |        -16 |       -303 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\opcua\TagBrowser.tsx                  | TypeScript JSX     |       -343 |         -9 |        -31 |       -383 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\badge.tsx                          | TypeScript JSX     |        -25 |          0 |         -4 |        -29 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\button.tsx                         | TypeScript JSX     |        -37 |          0 |         -4 |        -41 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\card.tsx                           | TypeScript JSX     |        -49 |          0 |         -6 |        -55 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\dialog.tsx                         | TypeScript JSX     |        -85 |         -4 |        -11 |       -100 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\input.tsx                          | TypeScript JSX     |        -39 |          0 |         -5 |        -44 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\select.tsx                         | TypeScript JSX     |        -61 |          0 |         -6 |        -67 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\table.tsx                          | TypeScript JSX     |        -97 |          0 |        -16 |       -113 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\components\ui\tabs.tsx                           | TypeScript JSX     |        -47 |          0 |         -6 |        -53 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\contexts\AuthContext.tsx                         | TypeScript JSX     |       -131 |         -8 |        -19 |       -158 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\hooks\useOPCUA.ts                                | TypeScript         |       -350 |        -13 |        -44 |       -407 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\index.css                                        | CSS                |        -56 |          0 |         -4 |        -60 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\main.tsx                                         | TypeScript JSX     |         -9 |          0 |         -2 |        -11 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\APCAttainment.tsx                          | TypeScript JSX     |       -302 |         -6 |        -22 |       -330 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\Dashboard.tsx                              | TypeScript JSX     |       -746 |        -16 |        -40 |       -802 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoginPage.tsx                              | TypeScript JSX     |       -138 |          0 |         -8 |       -146 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopConfig.tsx                             | TypeScript JSX     |       -377 |         -7 |        -36 |       -420 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopConfiguration.tsx                      | TypeScript JSX     |       -767 |        -13 |        -36 |       -816 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopDetail.tsx                             | TypeScript JSX     |       -885 |        -24 |        -47 |       -956 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\LoopsList.tsx                              | TypeScript JSX     |       -742 |         -7 |        -25 |       -774 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\OPCUAConfig.tsx                            | TypeScript JSX     |       -231 |        -12 |        -18 |       -261 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\OscillationClusters.tsx                    | TypeScript JSX     |       -336 |         -7 |        -20 |       -363 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\pages\Reports.tsx                                | TypeScript JSX     |       -219 |         -4 |         -7 |       -230 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\services\opcua-api.ts                            | TypeScript         |       -175 |        -15 |        -39 |       -229 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\types\opcua.ts                                   | TypeScript         |       -163 |         -9 |        -20 |       -192 |
+| l:\Office\CLPM\clpm-app-latest\frontend\src\vite-env.d.ts                                    | TypeScript         |         -8 |         -1 |         -3 |        -12 |
+| l:\Office\CLPM\clpm-app-latest\frontend\tailwind.config.js                                   | JavaScript         |        -51 |         -1 |         -1 |        -53 |
+| l:\Office\CLPM\clpm-app-latest\frontend\tsconfig.json                                        | JSON with Comments |        -12 |          0 |         -1 |        -13 |
+| l:\Office\CLPM\clpm-app-latest\frontend\vite.config.ts                                       | TypeScript         |        -19 |         -2 |         -4 |        -25 |
+| Total                                                                                        |                    |     -5,897 |       -103 |       -233 |     -6,233 |
++----------------------------------------------------------------------------------------------+--------------------+------------+------------+------------+------------+

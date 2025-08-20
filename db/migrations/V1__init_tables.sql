@@ -1,4 +1,4 @@
-CREATE EXTENSION IF NOT EXISTS timescaledb;
+-- Remove TimescaleDB dependency - using regular PostgreSQL
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
 CREATE TABLE IF NOT EXISTS loops (
@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS loops (
   mode_tag VARCHAR(255) NOT NULL,
   valve_tag VARCHAR(255),
   importance SMALLINT DEFAULT 5,
+  active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now(),
   deleted_at TIMESTAMPTZ
@@ -29,6 +30,8 @@ CREATE TABLE IF NOT EXISTS loop_config (
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Note: raw_samples table is no longer needed since we're using InfluxDB for raw data
+-- Keeping it for backward compatibility but it won't be used
 CREATE TABLE IF NOT EXISTS raw_samples (
   ts TIMESTAMPTZ NOT NULL,
   loop_id UUID NOT NULL REFERENCES loops(id),
@@ -40,19 +43,21 @@ CREATE TABLE IF NOT EXISTS raw_samples (
   quality_code INTEGER,
   created_at TIMESTAMPTZ DEFAULT now()
 );
-SELECT create_hypertable('raw_samples', 'ts', if_not_exists => TRUE, chunk_time_interval => INTERVAL '7 days');
 CREATE INDEX IF NOT EXISTS idx_raw_samples_loop_ts ON raw_samples (loop_id, ts DESC);
 CREATE INDEX IF NOT EXISTS idx_raw_samples_ts ON raw_samples (ts DESC);
 
 CREATE TABLE IF NOT EXISTS agg_1m (
   bucket TIMESTAMPTZ NOT NULL,
   loop_id UUID NOT NULL REFERENCES loops(id),
-  pv_avg DOUBLE PRECISION, pv_min DOUBLE PRECISION, pv_max DOUBLE PRECISION, pv_count BIGINT,
-  op_avg DOUBLE PRECISION, sp_avg DOUBLE PRECISION,
+  pv_avg DOUBLE PRECISION, 
+  pv_min DOUBLE PRECISION, 
+  pv_max DOUBLE PRECISION, 
+  pv_count BIGINT,
+  op_avg DOUBLE PRECISION, 
+  sp_avg DOUBLE PRECISION,
   created_at TIMESTAMPTZ DEFAULT now(),
   PRIMARY KEY (bucket, loop_id)
 );
-SELECT create_hypertable('agg_1m', 'bucket', if_not_exists => TRUE, chunk_time_interval => INTERVAL '30 days');
 CREATE INDEX IF NOT EXISTS idx_agg1m_loop_bucket ON agg_1m (loop_id, bucket DESC);
 
 CREATE TABLE IF NOT EXISTS kpi_results (

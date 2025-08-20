@@ -1,7 +1,7 @@
 import 'dotenv/config';
 import pino from 'pino';
 import { Pool } from 'pg';
-import { createChannel } from './rabbit.js';
+import { InfluxDBClient } from './influxClient.js';
 import cron from 'node-cron';
 
 const log = pino({ name: 'kpi-worker' });
@@ -9,7 +9,7 @@ const log = pino({ name: 'kpi-worker' });
 class KPIWorkerService {
   constructor() {
     this.db = null;
-    this.rabbitChannel = null;
+    this.influxClient = null;
     this.isRunning = false;
     this.kpiWindowMinutes = parseInt(process.env.KPI_WINDOW_MIN) || 1440; // Default 24 hours
     this.cronSchedule = process.env.KPI_CRON_SCHEDULE || '*/15 * * * *'; // Every 15 minutes
@@ -19,7 +19,7 @@ class KPIWorkerService {
 
   async connect() {
     try {
-      // Connect to database
+      // Connect to PostgreSQL database
       this.db = new Pool({
         host: process.env.DB_HOST || 'localhost',
         port: process.env.DB_PORT || 5432,
@@ -36,13 +36,22 @@ class KPIWorkerService {
       await client.query('SELECT 1');
       client.release();
 
-      // Connect to RabbitMQ
-      this.rabbitChannel = await createChannel(
-        process.env.RABBITMQ_URL || 'amqp://localhost',
-        process.env.RABBITMQ_EXCHANGE || 'clpm'
-      );
+      // Initialize InfluxDB client
+      this.influxClient = new InfluxDBClient({
+        url: process.env.INFLUXDB_URL || 'http://localhost:8086',
+        token: process.env.INFLUXDB_TOKEN,
+        org: process.env.INFLUXDB_ORG,
+        bucket: process.env.INFLUXDB_BUCKET || 'clpm',
+        measurement: process.env.INFLUXDB_MEASUREMENT || 'control_loops'
+      });
 
-      log.info('KPI worker connected to database and RabbitMQ');
+      // Test InfluxDB connection
+      const influxConnected = await this.influxClient.testConnection();
+      if (!influxConnected) {
+        throw new Error('Failed to connect to InfluxDB');
+      }
+
+      log.info('KPI worker connected to PostgreSQL and InfluxDB');
     } catch (error) {
       log.error({ error: error.message }, 'Failed to connect to services');
       throw error;
@@ -117,7 +126,7 @@ class KPIWorkerService {
       // Get loop configuration
       const config = await this.getLoopConfiguration(loop.id);
       
-      // Get data for analysis window
+      // Get data for analysis window from InfluxDB
       const data = await this.getAnalysisData(loop.id, startTime, endTime);
       
       if (data.length === 0) {
@@ -317,9 +326,9 @@ class KPIWorkerService {
       // Try to get aggregated data first for efficiency
       let data = await this.getAggregatedData(loopId, startTime, endTime);
       
-      // If not enough aggregated data, fall back to raw samples
+      // If not enough aggregated data, fall back to raw data from InfluxDB
       if (data.length < 10) {
-        data = await this.getRawSamples(loopId, startTime, endTime);
+        data = await this.getInfluxDBData(loopId, startTime, endTime);
       }
       
       return data;
@@ -349,21 +358,18 @@ class KPIWorkerService {
     }
   }
 
-  async getRawSamples(loopId, startTime, endTime) {
+  async getInfluxDBData(loopId, startTime, endTime) {
     try {
-      const query = `
-        SELECT ts, pv, op, sp, mode, valve_position, quality_code
-        FROM raw_samples
-        WHERE loop_id = $1 
-          AND ts >= $2 
-          AND ts <= $3
-        ORDER BY ts ASC
-      `;
+      // Query raw data from InfluxDB
+      const data = await this.influxClient.queryData(
+        loopId,
+        startTime.toISOString(),
+        endTime.toISOString()
+      );
       
-      const result = await this.db.query(query, [loopId, startTime, endTime]);
-      return result.rows;
+      return data;
     } catch (error) {
-      log.error({ loopId, error: error.message }, 'Failed to get raw samples');
+      log.error({ loopId, error: error.message }, 'Failed to get InfluxDB data');
       return [];
     }
   }
@@ -373,7 +379,7 @@ class KPIWorkerService {
       const query = `
         INSERT INTO kpi_results (loop_id, timestamp, service_factor, effective_sf, 
                                 sat_percent, output_travel, pi, rpi, osc_index, stiction)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
       `;
       
       const values = [
@@ -442,8 +448,8 @@ class KPIWorkerService {
     try {
       await this.stopScheduler();
       
-      if (this.rabbitChannel) {
-        await this.rabbitChannel.close();
+      if (this.influxClient) {
+        await this.influxClient.close();
       }
       
       if (this.db) {

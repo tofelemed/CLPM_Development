@@ -1,16 +1,26 @@
 {
-  "name": "clpm-kpi-worker",
-  "version": "0.2.0",
-  "private": true,
+  "name": "kpi-worker",
+  "version": "1.0.0",
   "type": "module",
+  "description": "KPI calculation worker for CLPM",
+  "main": "src/index.js",
   "scripts": {
-    "dev": "node --watch src/index.js",
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "dotenv": "^16.4.5",
-    "pg": "^8.12.0",
-    "node-cron": "^3.0.3",
-    "pino": "^9.0.0"
-  }
+    "@influxdata/influxdb-client": "^1.33.2",
+    "@influxdata/influxdb-client-apis": "^1.33.2",
+    "dotenv": "^16.3.1",
+    "pino": "^8.17.2",
+    "pg": "^8.11.3",
+    "node-cron": "^3.0.3"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "keywords": ["kpi", "analytics", "influxdb"],
+  "author": "CLPM Team",
+  "license": "MIT"
 }

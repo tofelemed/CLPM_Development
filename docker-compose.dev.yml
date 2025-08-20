@@ -4,13 +4,13 @@ services:
   # Database
   postgres:
     image: postgres:15-alpine
-    container_name: clpm-postgres
+    container_name: clpm-postgres-dev
     environment:
       POSTGRES_DB: clpm
       POSTGRES_USER: clpm
       POSTGRES_PASSWORD: clpm_pwd
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_dev:/var/lib/postgresql/data
       - ./db/migrations:/docker-entrypoint-initdb.d
     ports:
       - "5432:5432"
@@ -20,12 +20,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - clpm-network
+      - clpm-network-dev
 
   # Redis Cache
   redis:
     image: redis:7-alpine
-    container_name: clpm-redis
+    container_name: clpm-redis-dev
     ports:
       - "6379:6379"
     healthcheck:
@@ -34,12 +34,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - clpm-network
+      - clpm-network-dev
 
   # Keycloak Auth
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
-    container_name: clpm-keycloak
+    container_name: clpm-keycloak-dev
     command: start-dev --http-port=8080
     environment:
       KEYCLOAK_ADMIN: admin
@@ -52,14 +52,14 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - clpm-network
+      - clpm-network-dev
 
-  # Aggregation Service
-  aggregation:
+  # Aggregation Service (Development)
+  aggregation-dev:
     build:
       context: ./backend/aggregation
       dockerfile: Dockerfile
-    container_name: clpm-aggregation
+    container_name: clpm-aggregation-dev
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -72,21 +72,23 @@ services:
       - INFLUXDB_ORG=64a5a03c6b52fde2
       - INFLUXDB_BUCKET=clpm
       - INFLUXDB_MEASUREMENT=control_loops
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
       - POLLING_INTERVAL=30000
+    volumes:
+      - ./backend/aggregation/src:/app/src
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - clpm-network
+      - clpm-network-dev
 
-  # KPI Worker
-  kpi-worker:
+  # KPI Worker (Development)
+  kpi-worker-dev:
     build:
       context: ./backend/kpi-worker
       dockerfile: Dockerfile
-    container_name: clpm-kpi-worker
+    container_name: clpm-kpi-worker-dev
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -102,21 +104,22 @@ services:
       - KPI_WINDOW_MIN=15
       - KPI_CRON_SCHEDULE=*/15 * * * *
       - KPI_MAX_CONCURRENCY=5
-      - LOG_LEVEL=info
+      - LOG_LEVEL=debug
+    volumes:
+      - ./backend/kpi-worker/src:/app/src
     depends_on:
       postgres:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - clpm-network
+      - clpm-network-dev
 
-  # API Gateway
-  api-gateway:
+  # API Gateway (Development)
+  api-gateway-dev:
     build:
       context: ./backend/api-gateway
       dockerfile: Dockerfile
-      target: production
-    container_name: clpm-api-gateway
+    container_name: clpm-api-gateway-dev
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -135,7 +138,10 @@ services:
       - INFLUXDB_ORG=64a5a03c6b52fde2
       - INFLUXDB_BUCKET=clpm
       - INFLUXDB_MEASUREMENT=control_loops
-      - NODE_ENV=production
+      - NODE_ENV=development
+    volumes:
+      - ./backend/api-gateway/src:/app/src
+      - ./backend/api-gateway/tsconfig.json:/app/tsconfig.json
     ports:
       - "8080:8080"
     depends_on:
@@ -143,34 +149,41 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      keycloak:
+        condition: service_healthy
     restart: unless-stopped
     networks:
-      - clpm-network
+      - clpm-network-dev
 
-  # Frontend
-  frontend:
+  # Frontend (Development)
+  frontend-dev:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      target: production
-    container_name: clpm-frontend
+    container_name: clpm-frontend-dev
     environment:
+      - NODE_ENV=development
       - VITE_API_BASE=http://localhost:8080/api/v1
       - VITE_OIDC_ISSUER=http://localhost:8081/realms/clpm
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
+      - ./frontend/package.json:/app/package.json
+      - ./frontend/vite.config.ts:/app/vite.config.ts
     ports:
-      - "80:80"
+      - "5173:5173"
     depends_on:
-      - api-gateway
+      - api-gateway-dev
     restart: unless-stopped
     networks:
-      - clpm-network
+      - clpm-network-dev
 
   # Python Diagnostics Service
-  diagnostics:
+  diagnostics-dev:
     build:
       context: ./python-services/diagnostics_service
       dockerfile: Dockerfile
-    container_name: clpm-diagnostics
+    container_name: clpm-diagnostics-dev
     environment:
       - DB_HOST=postgres
       - DB_PORT=5432
@@ -178,6 +191,8 @@ services:
       - DB_USER=clpm
       - DB_PASSWORD=clpm_pwd
       - DATABASE_URL=postgresql://clpm:clpm_pwd@postgres:5432/clpm
+    volumes:
+      - ./python-services/diagnostics_service/src:/app/src
     ports:
       - "8050:8050"
     depends_on:
@@ -185,12 +200,31 @@ services:
         condition: service_healthy
     restart: unless-stopped
     networks:
-      - clpm-network
+      - clpm-network-dev
+
+  # pgAdmin (Database Management)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: clpm-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@clpm.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - clpm-network-dev
 
 volumes:
-  postgres_data:
+  postgres_data_dev:
+    driver: local
+  pgadmin_data:
     driver: local
 
 networks:
-  clpm-network:
+  clpm-network-dev:
     driver: bridge
