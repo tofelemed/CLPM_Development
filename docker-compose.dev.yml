@@ -67,10 +67,10 @@ services:
       - DB_USER=clpm
       - DB_PASSWORD=clpm_pwd
       - DATABASE_URL=postgresql://clpm:clpm_pwd@postgres:5432/clpm
-      - INFLUXDB_URL=https://us-east-1-1.aws.cloud2.influxdata.com
-      - INFLUXDB_TOKEN=sN_1BDk1vutUQA4_ECchcKEFrwDLnhuoaK8v6gbjDFUZ2S5KoxaB9hI09Hqz8VSStTunNu06QS-Y1d8z9GyfGw==
-      - INFLUXDB_ORG=64a5a03c6b52fde2
-      - INFLUXDB_BUCKET=clpm
+      - INFLUXDB_URL=http://72.255.34.69:8086/
+      - INFLUXDB_TOKEN=4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==
+      - INFLUXDB_ORG=some_org
+      - INFLUXDB_BUCKET=some_data
       - INFLUXDB_MEASUREMENT=control_loops
       - LOG_LEVEL=debug
       - POLLING_INTERVAL=30000
@@ -96,10 +96,10 @@ services:
       - DB_USER=clpm
       - DB_PASSWORD=clpm_pwd
       - DATABASE_URL=postgresql://clpm:clpm_pwd@postgres:5432/clpm
-      - INFLUXDB_URL=https://us-east-1-1.aws.cloud2.influxdata.com
-      - INFLUXDB_TOKEN=sN_1BDk1vutUQA4_ECchcKEFrwDLnhuoaK8v6gbjDFUZ2S5KoxaB9hI09Hqz8VSStTunNu06QS-Y1d8z9GyfGw==
-      - INFLUXDB_ORG=64a5a03c6b52fde2
-      - INFLUXDB_BUCKET=clpm
+      - INFLUXDB_URL=http://72.255.34.69:8086/
+      - INFLUXDB_TOKEN=4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==
+      - INFLUXDB_ORG=some_org
+      - INFLUXDB_BUCKET=some_data
       - INFLUXDB_MEASUREMENT=control_loops
       - KPI_WINDOW_MIN=15
       - KPI_CRON_SCHEDULE=*/15 * * * *
@@ -133,10 +133,10 @@ services:
       - OIDC_JWKS_URI=http://keycloak:8080/realms/clpm/protocol/openid-connect/certs
       - DIAG_SERVICE_URL=http://diagnostics:8050
       - API_PORT=8080
-      - INFLUXDB_URL=https://us-east-1-1.aws.cloud2.influxdata.com
-      - INFLUXDB_TOKEN=sN_1BDk1vutUQA4_ECchcKEFrwDLnhuoaK8v6gbjDFUZ2S5KoxaB9hI09Hqz8VSStTunNu06QS-Y1d8z9GyfGw==
-      - INFLUXDB_ORG=64a5a03c6b52fde2
-      - INFLUXDB_BUCKET=clpm
+      - INFLUXDB_URL=http://72.255.34.69:8086/
+      - INFLUXDB_TOKEN=4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==
+      - INFLUXDB_ORG=some_org
+      - INFLUXDB_BUCKET=some_data
       - INFLUXDB_MEASUREMENT=control_loops
       - NODE_ENV=development
     volumes:

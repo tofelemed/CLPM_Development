@@ -39,10 +39,10 @@ class AggregationService {
 
       // Initialize InfluxDB client
       this.influxClient = new InfluxDBClient({
-        url: process.env.INFLUXDB_URL || 'http://localhost:8086',
-        token: process.env.INFLUXDB_TOKEN,
-        org: process.env.INFLUXDB_ORG,
-        bucket: process.env.INFLUXDB_BUCKET || 'clpm',
+        url: process.env.INFLUXDB_URL || 'http://72.255.34.69:8086/',
+        token: process.env.INFLUXDB_TOKEN || '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==',
+        org: process.env.INFLUXDB_ORG || 'some_org',
+        bucket: process.env.INFLUXDB_BUCKET || 'some_data',
         measurement: process.env.INFLUXDB_MEASUREMENT || 'control_loops'
       });
 

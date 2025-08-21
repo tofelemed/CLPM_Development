@@ -41,7 +41,7 @@ echo.
 echo 🌐 Access URLs:
 echo    Frontend: http://localhost:80
 echo    API Gateway: http://localhost:8080
-echo    InfluxDB Cloud: https://us-east-1-1.aws.cloud2.influxdata.com
+echo    InfluxDB Cloud: http://72.255.34.69:8086/
 echo    Keycloak: http://localhost:8081
 echo    Redis: localhost:6379
 echo    Diagnostics: http://localhost:8050

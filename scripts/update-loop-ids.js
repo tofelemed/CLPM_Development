@@ -1,10 +1,10 @@
 const { InfluxDB, Point } = require('@influxdata/influxdb-client')
 
 // Configuration
-const url = 'https://us-east-1-1.aws.cloud2.influxdata.com'
-const token = 'sN_1BDk1vutUQA4_ECchcKEFrwDLnhuoaK8v6gbjDFUZ2S5KoxaB9hI09Hqz8VSStTunNu06QS-Y1d8z9GyfGw=='
-const org = '64a5a03c6b52fde2'
-const bucket = 'clpm'
+const url = 'http://72.255.34.69:8086/'
+const token = '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w=='
+const org = 'some_org'
+const bucket = 'some_data'
 
 // Loop ID mapping
 const loopIdMapping = {

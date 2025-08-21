@@ -2,10 +2,10 @@ const { InfluxDB, Point } = require('@influxdata/influxdb-client')
 const { Client } = require('pg')
 
 // InfluxDB Configuration
-const influxUrl = 'https://us-east-1-1.aws.cloud2.influxdata.com'
-const influxToken = 'sN_1BDk1vutUQA4_ECchcKEFrwDLnhuoaK8v6gbjDFUZ2S5KoxaB9hI09Hqz8VSStTunNu06QS-Y1d8z9GyfGw=='
-const influxOrg = '64a5a03c6b52fde2'
-const influxBucket = 'clpm'
+const influxUrl = 'http://72.255.34.69:8086/'
+const influxToken = '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w=='
+const influxOrg = 'some_org'
+const influxBucket = 'some_data'
 
 // PostgreSQL Configuration
 const pgConfig = {

@@ -8,9 +8,9 @@ export class InfluxDBService {
   private queryApi: any;
 
   constructor() {
-    const url = process.env.INFLUXDB_URL || 'https://us-east-1-1.aws.cloud2.influxdata.com';
-    const token = process.env.INFLUXDB_TOKEN || '';
-    const org = process.env.INFLUXDB_ORG || '64a5a03c6b52fde2';
+    const url = process.env.INFLUXDB_URL || 'http://72.255.34.69:8086/';
+    const token = process.env.INFLUXDB_TOKEN || '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==';
+    const org = process.env.INFLUXDB_ORG || 'some_org';
 
     this.client = new InfluxDB({ url, token });
     this.queryApi = this.client.getQueryApi(org);
@@ -49,7 +49,7 @@ export class InfluxDBService {
     fields: string[] = ['pv', 'op', 'sp', 'mode', 'valve_position']
   ): Promise<any[]> {
     try {
-      const bucket = process.env.INFLUXDB_BUCKET || 'clpm';
+      const bucket = process.env.INFLUXDB_BUCKET || 'some_data';
       const measurement = process.env.INFLUXDB_MEASUREMENT || 'control_loops';
       
       // Start with a very simple query to test connectivity
@@ -92,7 +92,7 @@ export class InfluxDBService {
     window: string = '1m'
   ): Promise<any[]> {
     try {
-      const bucket = process.env.INFLUXDB_BUCKET || 'clpm';
+      const bucket = process.env.INFLUXDB_BUCKET || 'some_data';
       const measurement = process.env.INFLUXDB_MEASUREMENT || 'control_loops';
       
       const query = `
@@ -130,7 +130,7 @@ export class InfluxDBService {
 
   async getDataRange(loopId: string): Promise<{ start: Date; end: Date }> {
     try {
-      const bucket = process.env.INFLUXDB_BUCKET || 'clpm';
+      const bucket = process.env.INFLUXDB_BUCKET || 'some_data';
       const measurement = process.env.INFLUXDB_MEASUREMENT || 'control_loops';
       
       // Get first data point

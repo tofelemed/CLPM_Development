@@ -6,10 +6,10 @@ const log = pino({ name: 'kpi-influxdb-client' });
 export class InfluxDBClient {
   constructor(config) {
     this.config = {
-      url: config.url || process.env.INFLUXDB_URL || 'http://localhost:8086',
-      token: config.token || process.env.INFLUXDB_TOKEN,
-      org: config.org || process.env.INFLUXDB_ORG,
-      bucket: config.bucket || process.env.INFLUXDB_BUCKET || 'clpm',
+      url: config.url || process.env.INFLUXDB_URL || 'http://72.255.34.69:8086/',
+      token: config.token || process.env.INFLUXDB_TOKEN || '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==',
+      org: config.org || process.env.INFLUXDB_ORG || 'some_org',
+      bucket: config.bucket || process.env.INFLUXDB_BUCKET || 'some_data',
       measurement: config.measurement || process.env.INFLUXDB_MEASUREMENT || 'control_loops',
       ...config
     };

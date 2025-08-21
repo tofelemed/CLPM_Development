@@ -140,7 +140,16 @@ function TabPanel(props: TabPanelProps) {
       aria-labelledby={`loop-tab-${index}`}
       {...other}
     >
-      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+      {value === index && (
+        <Box sx={{ 
+          p: 3, 
+          minHeight: '600px',
+          width: '100%',
+          boxSizing: 'border-box'
+        }}>
+          {children}
+        </Box>
+      )}
     </div>
   );
 }
@@ -536,9 +545,14 @@ export default function LoopDetail() {
   console.log('Current loop state:', loop);
 
   return (
-    <Box>
+    <Box sx={{ 
+      width: '100%',
+      padding: '24px',
+      backgroundColor: '#f8fafc',
+      minHeight: '100vh'
+    }}>
       {/* Metadata Panel */}
-      <Paper sx={{ p: 3, mb: 3 }}>
+      <Paper sx={{ p: 3, mb: 3, borderRadius: 2, boxShadow: '0 2px 8px rgba(0,0,0,0.1)' }}>
         <Grid container spacing={3} alignItems="center">
           <Grid item xs={12} md={8}>
             <Typography variant="h4" gutterBottom>
@@ -579,14 +593,26 @@ export default function LoopDetail() {
       </Paper>
       
       {error && (
-        <Alert severity="error" sx={{ mb: 2 }}>
+        <Alert severity="error" sx={{ mb: 2, borderRadius: 2 }}>
           {error}
         </Alert>
       )}
 
       {/* Tabs */}
-      <Paper sx={{ width: '100%' }}>
-        <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
+      <Paper sx={{ 
+        width: '100%', 
+        borderRadius: 2, 
+        boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+        overflow: 'hidden'
+      }}>
+        <Tabs 
+          value={tabValue} 
+          onChange={(e, newValue) => setTabValue(newValue)}
+          sx={{
+            backgroundColor: '#f8fafc',
+            borderBottom: '1px solid #e2e8f0'
+          }}
+        >
           <Tab label="Live Trends" />
           <Tab label="KPI History" />
           <Tab label="Performance KPIs" />
@@ -620,7 +646,7 @@ export default function LoopDetail() {
              </Box>
            </Box>
           
-                     <ResponsiveContainer width="100%" height={400}>
+                     <ResponsiveContainer width="100%" height={500}>
              <LineChart data={trendData}>
                <CartesianGrid strokeDasharray="3 3" />
                <XAxis 
@@ -721,7 +747,7 @@ export default function LoopDetail() {
             </FormControl>
           </Box>
           
-          <ResponsiveContainer width="100%" height={400}>
+                     <ResponsiveContainer width="100%" height={500}>
             <LineChart data={kpiData}>
               <CartesianGrid strokeDasharray="3 3" />
               <XAxis 
@@ -763,10 +789,14 @@ export default function LoopDetail() {
             Comprehensive Performance KPIs
           </Typography>
           
-          <Grid container spacing={3}>
+          <Grid container spacing={3} sx={{ minHeight: '500px' }}>
             {/* Primary Performance KPIs */}
             <Grid item xs={12} md={6}>
-              <Card>
+              <Card sx={{ 
+                height: '100%',
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom color="primary">
                     Primary Performance KPIs
@@ -815,7 +845,11 @@ export default function LoopDetail() {
 
             {/* Control Performance */}
             <Grid item xs={12} md={6}>
-              <Card>
+              <Card sx={{ 
+                height: '100%',
+                borderRadius: 2,
+                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+              }}>
                 <CardContent>
                   <Typography variant="h6" gutterBottom color="primary">
                     Control Performance
@@ -1030,7 +1064,11 @@ export default function LoopDetail() {
 
                      {/* Latest Diagnostic Result */}
            {diagnostics && diagnostics.length > 0 && (
-            <Card sx={{ mb: 3 }}>
+            <Card sx={{ 
+              mb: 3, 
+              borderRadius: 2,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+            }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Latest Diagnostic Result
@@ -1078,7 +1116,12 @@ export default function LoopDetail() {
              Diagnostic History
            </Typography>
            {diagnostics && diagnostics.length > 0 ? (
-             <List>
+             <List sx={{ 
+               backgroundColor: '#ffffff',
+               borderRadius: 2,
+               boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+               overflow: 'hidden'
+             }}>
                {diagnostics.map((diagnostic, index) => (
               <ListItem key={index} divider>
                 <ListItemIcon>
@@ -1105,7 +1148,7 @@ export default function LoopDetail() {
                ))}
              </List>
            ) : (
-             <Alert severity="info">
+             <Alert severity="info" sx={{ borderRadius: 2 }}>
                No diagnostic history available.
              </Alert>
            )}
@@ -1117,9 +1160,13 @@ export default function LoopDetail() {
             Configuration Thresholds
           </Typography>
           {config ? (
-            <Grid container spacing={3}>
+            <Grid container spacing={3} sx={{ minHeight: '400px' }}>
               <Grid item xs={12} sm={6} md={4}>
-                <Card>
+                <Card sx={{ 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>Service Factor</Typography>
                     <Typography variant="body2">Low: {config.sf_low}</Typography>
@@ -1128,7 +1175,11 @@ export default function LoopDetail() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
-                <Card>
+                <Card sx={{ 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>RPI Range</Typography>
                     <Typography variant="body2">Low: {config.rpi_low}</Typography>
@@ -1137,7 +1188,11 @@ export default function LoopDetail() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
-                <Card>
+                <Card sx={{ 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>Oscillation Limit</Typography>
                     <Typography variant="body2">Max: {config.osc_limit}</Typography>
@@ -1145,7 +1200,11 @@ export default function LoopDetail() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
-                <Card>
+                <Card sx={{ 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>Saturation</Typography>
                     <Typography variant="body2">High: {config.sat_high}</Typography>
@@ -1153,7 +1212,11 @@ export default function LoopDetail() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
-                <Card>
+                <Card sx={{ 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>KPI Window</Typography>
                     <Typography variant="body2">{config.kpi_window} minutes</Typography>
@@ -1161,7 +1224,11 @@ export default function LoopDetail() {
                 </Card>
               </Grid>
               <Grid item xs={12} sm={6} md={4}>
-                <Card>
+                <Card sx={{ 
+                  height: '100%',
+                  borderRadius: 2,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
                   <CardContent>
                     <Typography variant="subtitle1" gutterBottom>Importance</Typography>
                     <Typography variant="body2">{config.importance}</Typography>
@@ -1170,7 +1237,7 @@ export default function LoopDetail() {
               </Grid>
             </Grid>
           ) : (
-            <Alert severity="info">
+            <Alert severity="info" sx={{ borderRadius: 2 }}>
               No configuration found. Please configure this loop.
             </Alert>
           )}

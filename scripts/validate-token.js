@@ -1,9 +1,9 @@
 const { InfluxDB } = require('@influxdata/influxdb-client')
 
 // Configuration
-const url = 'https://us-east-1-1.aws.cloud2.influxdata.com'
-const token = 'sN_1BDk1vutUQA4_ECchcKEFrwDLnhuoaK8v6gbjDFUZ2S5KoxaB9hI09Hqz8VSStTunNu06QS-Y1d8z9GyfGw=='
-const org = '64a5a03c6b52fde2'
+const url = 'http://72.255.34.69:8086/'
+const token = '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w=='
+const org = 'some_org'
 const bucket = 'clpm'
 
 async function validateToken() {
@@ -116,7 +116,7 @@ async function validateToken() {
       console.log('   - Write access to buckets')
       console.log('3. Ensure the organization ID is correct')
       console.log('4. Check if the bucket exists in your organization')
-      console.log('\n🔗 You can check your token at: https://us-east-1-1.aws.cloud2.influxdata.com/orgs/64a5a03c6b52fde2/tokens')
+      console.log('\n🔗 You can check your token at: http://72.255.34.69:8086/orgs/some_org/tokens')
     }
     
     throw error

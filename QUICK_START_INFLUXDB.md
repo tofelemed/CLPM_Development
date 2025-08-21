@@ -48,7 +48,7 @@ This will:
 You can verify the data was loaded by:
 
 1. **Using the InfluxDB Cloud UI**:
-   - Go to https://us-east-1-1.aws.cloud2.influxdata.com
+   - Go to http://72.255.34.69:8086/
    - Navigate to your `clpm` bucket
    - Query: `from(bucket: "clpm") |> range(start: -1h) |> filter(fn: (r) => r._measurement == "control_loops")`
 
@@ -144,8 +144,8 @@ docker-compose logs kpi-worker
 ## Configuration Details
 
 Your InfluxDB Cloud configuration:
-- **URL**: https://us-east-1-1.aws.cloud2.influxdata.com
-- **Organization**: 64a5a03c6b52fde2
+- **URL**: http://72.255.34.69:8086/
+- **Organization**: some_org
 - **Bucket**: clpm
 - **Measurement**: control_loops
 

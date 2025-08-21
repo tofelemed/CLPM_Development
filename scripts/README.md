@@ -6,10 +6,10 @@ This directory contains scripts for loading data into InfluxDB for the CLPM (Con
 
 The scripts are configured to use your InfluxDB Cloud instance:
 
-- **URL**: `https://us-east-1-1.aws.cloud2.influxdata.com`
-- **Organization**: `64a5a03c6b52fde2`
-- **Bucket**: `clpm`
-- **API Token**: `sN_1BDk1vutUQA4_ECchcKEFrwDLnhuoaK8v6gbjDFUZ2S5KoxaB9hI09Hqz8VSStTunNu06QS-Y1d8z9GyfGw==`
+- **URL**: `http://72.255.34.69:8086/`
+- **Organization**: `some_org`
+- **Bucket**: `some_data`
+- **API Token**: `4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==`
 
 ## Installation
 
@@ -179,10 +179,10 @@ loadData(customData)
 You can override the default configuration using environment variables:
 
 ```bash
-export INFLUXDB_URL="https://us-east-1-1.aws.cloud2.influxdata.com"
+export INFLUXDB_URL="http://72.255.34.69:8086/"
 export INFLUXDB_TOKEN="your-token-here"
-export INFLUXDB_ORG="your-org-id"
-export INFLUXDB_BUCKET="your-bucket-name"
+export INFLUXDB_ORG="some_org"
+export INFLUXDB_BUCKET="some_data"
 ```
 
 ## Data Validation
