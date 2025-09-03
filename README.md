@@ -391,7 +391,7 @@ For support and questions:
 
 
 Change your pgAdmin connection settings to:
-Host name/address: clpm-postgres (not clpm-db or localhost)
+Host name/address: clpm-postgres-dev (not clpm-db or localhost)
 Port: 5432
 Maintenance database: clpm
 Username: clpm
