@@ -1,8 +1,8 @@
-import { Column, CreateDateColumn, Entity, PrimaryGeneratedColumn, UpdateDateColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, PrimaryColumn, UpdateDateColumn } from 'typeorm';
 
 @Entity({ name: 'loops' })
 export class Loop {
-  @PrimaryGeneratedColumn('uuid') id!: string;
+  @PrimaryColumn({ name: 'loop_id', length: 255 }) loop_id!: string;
   @Column({ length: 255 }) name!: string;
   @Column({ type: 'text', nullable: true }) description?: string;
   @Column({ name: 'pv_tag', length: 255 }) pvTag!: string;

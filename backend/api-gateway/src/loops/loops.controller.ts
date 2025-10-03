@@ -2,12 +2,12 @@ import { Controller, Get, Post, Body, Param, Put, Delete, Query } from '@nestjs/
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { LoopsService } from './loops.service';
 import { LoopConfigService } from './loop-config.service';
-import { OpcuaService } from './opcua.service';
 import { CreateLoopDto } from './dto/create-loop.dto';
 import { UpdateLoopDto } from './dto/update-loop.dto';
 import { CreateLoopConfigDto } from './dto/create-loop-config.dto';
 import { UpdateLoopConfigDto } from './dto/update-loop-config.dto';
 import { Roles } from '../auth/roles.decorator';
+import { DataService } from '../data/data.service';
 
 @ApiTags('loops')
 @ApiBearerAuth()
@@ -16,7 +16,7 @@ export class LoopsController {
   constructor(
     private readonly service: LoopsService,
     private readonly configService: LoopConfigService,
-    private readonly opcuaService: OpcuaService
+    private readonly dataService: DataService
   ) {}
 
   @Get()
@@ -25,7 +25,7 @@ export class LoopsController {
     // Transform to match frontend expectations
     return { 
       loops: loops.map(loop => ({
-        id: loop.id,
+        id: loop.loop_id,
         name: loop.name,
         description: loop.description,
         importance: loop.importance,
@@ -46,7 +46,7 @@ export class LoopsController {
   async create(@Body() dto: CreateLoopDto) { 
     const loop = await this.service.create(dto);
     return {
-      id: loop.id,
+      id: loop.loop_id,
       name: loop.name,
       description: loop.description,
       importance: loop.importance,
@@ -65,7 +65,7 @@ export class LoopsController {
   async get(@Param('id') id: string) { 
     const loop = await this.service.findOne(id);
     return {
-      id: loop.id,
+      id: loop.loop_id,
       name: loop.name,
       description: loop.description,
       importance: loop.importance,
@@ -85,7 +85,7 @@ export class LoopsController {
   async update(@Param('id') id: string, @Body() dto: UpdateLoopDto) { 
     const loop = await this.service.update(id, dto);
     return {
-      id: loop.id,
+      id: loop.loop_id,
       name: loop.name,
       description: loop.description,
       importance: loop.importance,
@@ -103,7 +103,7 @@ export class LoopsController {
   @Delete(':id')
   @Roles('admin')
   async remove(@Param('id') id: string) { 
-    // Delete configuration first (which removes OPC UA monitoring)
+    // Delete configuration first
     await this.configService.delete(id);
     // Then delete the loop
     await this.service.softDelete(id); 
@@ -197,25 +197,29 @@ export class LoopsController {
     return { validation: results };
   }
 
-  // OPC UA Integration Endpoints
-  @Get('opcua/connections')
-  async getOpcuaConnections() {
-    const connections = await this.opcuaService.getConnections();
-    return { connections };
-  }
-
-  @Get('opcua/browse')
-  async browseNodes(@Query('nodeId') nodeId?: string) {
-    const results = await this.opcuaService.browseNodes(nodeId || 'RootFolder');
-    return { results };
-  }
-
-  @Get('opcua/search')
-  async searchNodes(@Query('q') searchTerm?: string) {
-    if (!searchTerm) {
-      return { results: [] };
+  @Get(':id/data')
+  async getLoopData(
+    @Param('id') id: string,
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @Query('fields') fields: string,
+    @Query('interval') interval?: string,
+    @Query('limit') limit?: string
+  ) {
+    const fieldArray = fields ? fields.split(',') : ['pv', 'op', 'sp'];
+    const limitNum = limit ? parseInt(limit) : undefined;
+    
+    // Use aggregated data for better performance when interval is specified
+    if (interval && ['1m', '5m', '15m', '1h'].includes(interval)) {
+      return await this.dataService.queryAggregated(id, start, end, interval);
+    } else {
+      return await this.dataService.queryRaw(id, start, end, fieldArray, interval, limitNum);
     }
-    const results = await this.opcuaService.searchNodes(searchTerm);
-    return { results };
   }
+
+  @Get(':id/data/range')
+  async getLoopDataRange(@Param('id') id: string) {
+    return await this.dataService.getDataRange(id);
+  }
+
 }

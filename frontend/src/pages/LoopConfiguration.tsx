@@ -44,7 +44,6 @@ import {
   Search as SearchIcon
 } from '@mui/icons-material';
 import { AlertTriangle, Gauge, Database } from 'lucide-react';
-import { TagBrowser } from '../components/opcua/TagBrowser';
 import { Dialog } from '../components/ui/dialog';
 
 export default function LoopConfiguration() {
@@ -63,8 +62,6 @@ export default function LoopConfiguration() {
   const [loading, setLoading] = React.useState(false);
   const [csvImportDialog, setCsvImportDialog] = React.useState(false);
   const [csvData, setCsvData] = React.useState('');
-  const [showTagBrowser, setShowTagBrowser] = React.useState(false);
-  const [selectedTagType, setSelectedTagType] = React.useState<string | null>(null);
   const [availableConnections, setAvailableConnections] = React.useState<any[]>([]);
   const [formData, setFormData] = React.useState({
     name: '',
@@ -124,20 +121,6 @@ export default function LoopConfiguration() {
     }
   };
 
-  const handleTagSelect = (tags: any[]) => {
-    if (selectedTagType && tags.length > 0) {
-      const tag = tags[0]; // Take the first selected tag
-      setFormData(prev => ({
-        ...prev,
-        tags: {
-          ...prev.tags,
-          [selectedTagType]: tag
-        }
-      }));
-    }
-    setShowTagBrowser(false);
-    setSelectedTagType(null);
-  };
 
   const generateCsvTemplate = () => {
     const template = 'name,description,connectionId,pvTag,spTag,opTag,modeTag,valveTag,samplingInterval,kpiWindow,oscillationLimit,importance\nLoop001,Temperature Control Loop,connection1,ns=2;s=TIC001.PV,ns=2;s=TIC001.SP,ns=2;s=TIC001.OP,,,1000,3600,0.1,5';
@@ -647,17 +630,9 @@ export default function LoopConfiguration() {
                           <Button
                             size="small"
                             startIcon={<SearchIcon />}
-                            onClick={() => {
-                              if (!formData.connectionId) {
-                                alert('Please select an OPC UA connection first');
-                                return;
-                              }
-                              setSelectedTagType(tagType);
-                              setShowTagBrowser(true);
-                            }}
-                            disabled={!formData.connectionId}
+                            disabled={true}
                           >
-                            Browse
+                            Browse (Disabled)
                           </Button>
                         </Box>
                         {formData.tags[tagType] ? (
@@ -793,23 +768,6 @@ export default function LoopConfiguration() {
         </DialogActions>
       </Dialog>
 
-      {/* Tag Browser Dialog */}
-      <Dialog
-        open={showTagBrowser}
-        onClose={() => {
-          setShowTagBrowser(false);
-          setSelectedTagType(null);
-        }}
-        title={`Select ${selectedTagType} Tag`}
-        maxWidth="xl"
-      >
-        <TagBrowser
-          serverId={formData.connectionId}
-          onTagSelect={handleTagSelect}
-          multiSelect={false}
-          showValues={false}
-        />
-      </Dialog>
     </Box>
   );
 }

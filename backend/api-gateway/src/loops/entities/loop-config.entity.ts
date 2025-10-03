@@ -3,7 +3,7 @@ import { Loop } from './loop.entity';
 
 @Entity({ name: 'loop_config' })
 export class LoopConfig {
-  @PrimaryColumn({ name: 'loop_id', type: 'uuid' }) loopId!: string;
+  @PrimaryColumn({ name: 'loop_id', type: 'varchar', length: 255 }) loopId!: string;
   
   // KPI Thresholds  
   @Column({ name: 'sf_low', type: 'decimal', precision: 4, scale: 3, nullable: true }) sfLow?: number;

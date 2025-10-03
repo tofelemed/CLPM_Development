@@ -20,11 +20,11 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo 🔧 Starting development services...
-docker-compose -f docker-compose.dev.yml up -d
+echo 🔧 Starting CLPM services...
+docker-compose up -d
 
 if %errorlevel% neq 0 (
-    echo ❌ Failed to start development services
+    echo ❌ Failed to start services
     pause
     exit /b 1
 )
@@ -34,28 +34,22 @@ echo ⏳ Waiting for services to be ready...
 timeout /t 30 /nobreak >nul
 
 echo.
-echo 📊 Development Service Status:
-docker-compose -f docker-compose.dev.yml ps
+echo 📊 Service Status:
+docker-compose ps
 
 echo.
 echo 🌐 Access URLs:
-echo    Frontend (Dev): http://localhost:5173
-echo    API Gateway (Dev): http://localhost:8080
-echo    InfluxDB: http://localhost:8086
+echo    Frontend: http://localhost:80
+echo    API Gateway: http://localhost:8080
+echo    InfluxDB: http://localhost:8086 (admin / admin123)
 echo    Keycloak: http://localhost:8081
 echo    Redis: localhost:6379
 echo    Diagnostics: http://localhost:8050
+echo    PostgreSQL: localhost:5432
 echo    pgAdmin: http://localhost:5050 (admin@clpm.com / admin123)
-echo    Chronograf: http://localhost:8888
 echo.
-echo 🔧 Development Features:
-echo    - Hot reload enabled for all services
-echo    - Source code mounted for live editing
-echo    - Debug logging enabled
-echo    - Development tools included
+echo 📋 To view logs, run: docker-compose logs -f
+echo 📋 To stop services, run: docker-compose down
 echo.
-echo 📋 To view logs, run: docker-compose -f docker-compose.dev.yml logs -f
-echo 📋 To stop services, run: docker-compose -f docker-compose.dev.yml down
-echo.
-echo ✅ Development services started successfully!
+echo ✅ CLPM services started successfully!
 pause

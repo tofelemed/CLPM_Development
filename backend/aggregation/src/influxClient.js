@@ -17,62 +17,58 @@ export class InfluxDBClient {
 
   async testConnection() {
     try {
-      const query = `buckets()`;
-      const results = [];
-      
-      await this.queryApi.queryRaw(query, {
-        next: (row, tableMeta) => {
-          const o = tableMeta.toObject(row);
-          results.push(o);
-        },
-        error: (error) => {
-          log.error('Query error:', error);
-          throw error;
-        },
-        complete: () => {
-          log.info('Connection test successful');
-        }
-      });
+      log.info({ url: this.url, org: this.org, bucket: this.bucket }, 'Testing InfluxDB connection');
+      const query = `from(bucket: "${this.bucket}") |> range(start: -1m) |> limit(n: 1)`;
 
-      return results.length > 0;
+      const rows = await this.queryApi.collectRows(query);
+      const hasData = rows.length > 0;
+
+      log.info({ hasData }, 'InfluxDB test query result');
+      // Connection is successful even if no data exists
+      return true;
     } catch (error) {
-      log.error('Connection test failed:', error);
+      log.error({ error: error.message, stack: error.stack, url: this.url }, 'InfluxDB connection test failed');
       return false;
     }
   }
 
   async queryData(loopId, startTime, endTime, fields = ['pv', 'op', 'sp', 'mode', 'valve_position']) {
     try {
-      const fieldFilters = fields.map(field => `r._field == "${field}"`).join(' or ');
-      
+      // Query with pivot to combine fields into single records per timestamp
+      // Convert ISO strings to Flux time literals by wrapping in time()
       const query = `
         from(bucket: "${this.bucket}")
-          |> range(start: ${startTime}, stop: ${endTime})
+          |> range(start: time(v: "${startTime}"), stop: time(v: "${endTime}"))
           |> filter(fn: (r) => r._measurement == "${this.measurement}")
           |> filter(fn: (r) => r.loop_id == "${loopId}")
-          |> filter(fn: (r) => ${fieldFilters})
-          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+          |> filter(fn: (r) => r._field == "pv" or r._field == "op" or r._field == "sp" or r._field == "valve_position")
+          |> pivot(rowKey:["_time", "Mode"], columnKey: ["_field"], valueColumn: "_value")
+          |> sort(columns: ["_time"])
       `;
 
+      log.debug({ loopId, startTime, endTime }, 'Executing InfluxDB query');
+
+      // Use collectRows instead of queryRaw callbacks
+      const rows = await this.queryApi.collectRows(query);
       const results = [];
       
-      await this.queryApi.queryRaw(query, {
-        next: (row, tableMeta) => {
-          const o = tableMeta.toObject(row);
-          results.push(o);
-        },
-        error: (error) => {
-          log.error('Query error:', error);
-          throw error;
-        },
-        complete: () => {
-          log.info(`Retrieved ${results.length} data points for loop ${loopId}`);
-        }
-      });
+      for (const row of rows) {
+        results.push({
+          ts: new Date(row._time),
+          loop_id: loopId,
+          pv: row.pv !== undefined ? parseFloat(row.pv) : null,
+          op: row.op !== undefined ? parseFloat(row.op) : null,
+          sp: row.sp !== undefined ? parseFloat(row.sp) : null,
+          mode: row.Mode || null, // Mode is a tag, preserved in pivot rowKey
+          valve_position: row.valve_position !== undefined ? parseFloat(row.valve_position) : null,
+          quality_code: 192 // Default good quality for InfluxDB data
+        });
+      }
 
+      log.debug({ loopId, count: results.length }, 'Retrieved data points from InfluxDB');
       return results;
     } catch (error) {
-      log.error('Error querying data:', error);
+      log.error({ error: error.message, loopId }, 'Error querying data');
       throw error;
     }
   }
@@ -81,33 +77,33 @@ export class InfluxDBClient {
     try {
       const query = `
         from(bucket: "${this.bucket}")
-          |> range(start: ${startTime}, stop: ${endTime})
+          |> range(start: time(v: "${startTime}"), stop: time(v: "${endTime}"))
           |> filter(fn: (r) => r._measurement == "${this.measurement}")
           |> filter(fn: (r) => r.loop_id == "${loopId}")
-          |> filter(fn: (r) => r._field == "pv" or r._field == "op" or r._field == "sp")
           |> aggregateWindow(every: ${window}, fn: mean, createEmpty: false)
-          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+          |> sort(columns: ["_time"])
       `;
 
+      log.debug({ loopId, startTime, endTime, window }, 'Executing aggregated InfluxDB query');
+      
+      const rows = await this.queryApi.collectRows(query);
       const results = [];
       
-      await this.queryApi.queryRaw(query, {
-        next: (row, tableMeta) => {
-          const o = tableMeta.toObject(row);
-          results.push(o);
-        },
-        error: (error) => {
-          log.error('Aggregated query error:', error);
-          throw error;
-        },
-        complete: () => {
-          log.info(`Retrieved ${results.length} aggregated data points for loop ${loopId}`);
-        }
-      });
-
+      for (const row of rows) {
+        results.push({
+          bucket: new Date(row._time),
+          loop_id: loopId,
+          pv_avg: row.pv || null,
+          op_avg: row.op || null,
+          sp_avg: row.sp || null,
+          pv_count: 1 // InfluxDB aggregation doesn't provide count
+        });
+      }
+      
+      log.debug({ loopId, count: results.length }, 'Retrieved aggregated data points from InfluxDB');
       return results;
     } catch (error) {
-      log.error('Error querying aggregated data:', error);
+      log.error({ loopId, error: error.message }, 'Error querying aggregated data');
       throw error;
     }
   }

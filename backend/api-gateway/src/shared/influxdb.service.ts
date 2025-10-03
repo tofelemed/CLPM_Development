@@ -8,9 +8,9 @@ export class InfluxDBService {
   private queryApi: any;
 
   constructor() {
-    const url = process.env.INFLUXDB_URL || 'http://72.255.34.69:8086/';
-    const token = process.env.INFLUXDB_TOKEN || '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==';
-    const org = process.env.INFLUXDB_ORG || 'some_org';
+    const url = process.env.INFLUXDB_URL || 'http://influxdb:8086/';
+    const token = process.env.INFLUXDB_TOKEN || 't7N9PhbgybcVlRAooYz8xgCn-Zj9Sz7MweqXnPldYcSXkkjf83XHsue6DT5E3dwdEjmsDu4I76A99VwKhBm_3A==';
+    const org = process.env.INFLUXDB_ORG || 'clpm';
 
     this.client = new InfluxDB({ url, token });
     this.queryApi = this.client.getQueryApi(org);
@@ -49,25 +49,37 @@ export class InfluxDBService {
     fields: string[] = ['pv', 'op', 'sp', 'mode', 'valve_position']
   ): Promise<any[]> {
     try {
-      const bucket = process.env.INFLUXDB_BUCKET || 'some_data';
+      const bucket = process.env.INFLUXDB_BUCKET || 'clpm_data';
       const measurement = process.env.INFLUXDB_MEASUREMENT || 'control_loops';
-      
-      // Start with a very simple query to test connectivity
+
+      // Query with pivot to combine fields into single records per timestamp
       const query = `
         from(bucket: "${bucket}")
-          |> range(start: -1h)
+          |> range(start: ${startTime}, stop: ${endTime})
+          |> filter(fn: (r) => r._measurement == "${measurement}")
           |> filter(fn: (r) => r.loop_id == "${loopId}")
-          |> limit(n: 10)
+          |> filter(fn: (r) => r._field == "pv" or r._field == "op" or r._field == "sp" or r._field == "valve_position")
+          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+          |> sort(columns: ["_time"])
       `;
 
       this.logger.debug(`Executing Flux query: ${query}`);
 
       const results: any[] = [];
-      
+
       await this.queryApi.queryRaw(query, {
         next: (row: any, tableMeta: any) => {
           const o = tableMeta.toObject(row);
-          results.push(o);
+          results.push({
+            ts: new Date(o._time),
+            loop_id: loopId,
+            pv: o.pv !== undefined ? parseFloat(o.pv) : null,
+            op: o.op !== undefined ? parseFloat(o.op) : null,
+            sp: o.sp !== undefined ? parseFloat(o.sp) : null,
+            mode: o.Mode || null,
+            valve_position: o.valve_position !== undefined ? parseFloat(o.valve_position) : null,
+            quality_code: 192 // Default good quality for InfluxDB data
+          });
         },
         error: (error: any) => {
           this.logger.error('InfluxDB query error:', error);
@@ -92,7 +104,7 @@ export class InfluxDBService {
     window: string = '1m'
   ): Promise<any[]> {
     try {
-      const bucket = process.env.INFLUXDB_BUCKET || 'some_data';
+      const bucket = process.env.INFLUXDB_BUCKET || 'clpm_data';
       const measurement = process.env.INFLUXDB_MEASUREMENT || 'control_loops';
       
       const query = `
@@ -130,7 +142,7 @@ export class InfluxDBService {
 
   async getDataRange(loopId: string): Promise<{ start: Date; end: Date }> {
     try {
-      const bucket = process.env.INFLUXDB_BUCKET || 'some_data';
+      const bucket = process.env.INFLUXDB_BUCKET || 'clpm_data';
       const measurement = process.env.INFLUXDB_MEASUREMENT || 'control_loops';
       
       // Get first data point

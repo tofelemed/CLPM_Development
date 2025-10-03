@@ -24,7 +24,7 @@ InfluxDB API → Aggregation (InfluxDB Client) → Aggregated Data (PostgreSQL) 
 ## Services Modified
 
 ### 1. Removed Services
-- `backend/opcua-client/` - Replaced with InfluxDB API calls
+- Data collection services - Integrated with InfluxDB API calls
 - `backend/ingestion/` - No longer needed as we don't store raw samples
 
 ### 2. Modified Services

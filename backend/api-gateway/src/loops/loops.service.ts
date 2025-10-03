@@ -28,7 +28,7 @@ export class LoopsService {
   }
 
   async findOne(id: string): Promise<Loop> {
-    const loop = await this.repo.findOne({ where: { id } });
+    const loop = await this.repo.findOne({ where: { loop_id: id } });
     if (!loop || loop.deletedAt) throw new NotFoundException('Loop not found');
     return loop;
   }

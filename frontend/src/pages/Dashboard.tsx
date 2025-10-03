@@ -40,7 +40,6 @@ import axios from 'axios';
 import { format, subHours, subDays } from 'date-fns';
 
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
-const OPCUA_API = import.meta.env.VITE_OPCUA_API_BASE || 'http://localhost:8080/api/v1';
 
 interface Loop {
   id: string;
@@ -175,248 +174,43 @@ export default function Dashboard() {
            plantArea: 'Plant Area', // Default value
            criticality: loop.importance > 7 ? 'high' : loop.importance > 4 ? 'medium' : 'low',
            lastUpdated: loop.updated_at || new Date().toISOString(),
-           deadband: 0.02,
-           saturation: 0.08,
-           setpointChanges: Math.floor(Math.random() * 20),
-           modeChanges: Math.floor(Math.random() * 5),
-           valveTravel: 0.75,
-           settlingTime: 45,
-           overshoot: 0.05,
-           riseTime: 30,
-           peakError: Math.random() * 15,
-           integralError: 20 + Math.random() * 50,
-           derivativeError: Math.random() * 5,
-           controlError: 1.2,
-           valveReversals: 8,
-           noiseLevel: 0.03,
-           processGain: 0.5 + Math.random() * 1.5,
-           timeConstant: 60 + Math.random() * 120,
-           deadTime: 30 + Math.random() * 60
-         };
-       });
-      
-      // Add some mock loops if API has few loops for demo purposes
-      const mockLoops: Loop[] = transformedLoops.length > 0 ? [] : [
-        {
-          id: 'loop-1',
-            name: 'Temperature Control Loop',
-          description: 'Reactor temperature control',
-            pvTag: 'TEMP_PV',
-            opTag: 'TEMP_OP',
-          spTag: 'TEMP_SP',
-          importance: 0.9,
-          classification: 'normal',
-          serviceFactor: 0.85,
-          pi: 0.78,
-          rpi: 0.82,
-          oscillationIndex: 0.12,
-          stictionSeverity: 0.05,
-          plantArea: 'Reactor Section',
-          criticality: 'high',
-          lastUpdated: new Date().toISOString(),
-          deadband: 0.02,
+                     deadband: 0.02,
           saturation: 0.08,
-          setpointChanges: 12,
-          modeChanges: 3,
+          setpointChanges: 0,
+          modeChanges: 0,
           valveTravel: 0.75,
           settlingTime: 45,
           overshoot: 0.05,
-          riseTime: 120,
-          peakError: 2.3,
-          integralError: 15.7,
-          derivativeError: 0.8,
+          riseTime: 30,
+          peakError: 0,
+          integralError: 0,
+          derivativeError: 0,
           controlError: 1.2,
-          valveReversals: 8,
+          valveReversals: 0,
           noiseLevel: 0.03,
-          processGain: 1.2,
-          timeConstant: 180,
-          deadTime: 30
-        },
-        {
-          id: 'loop-2',
-            name: 'Pressure Control Loop',
-          description: 'Distillation column pressure',
-            pvTag: 'PRESS_PV',
-            opTag: 'PRESS_OP',
-          spTag: 'PRESS_SP',
-          importance: 0.7,
-          classification: 'oscillating',
-          serviceFactor: 0.45,
-          pi: 0.32,
-          rpi: 0.38,
-          oscillationIndex: 0.78,
-          stictionSeverity: 0.15,
-          rootCause: 'Flow control loop interaction',
-          plantArea: 'Distillation Section',
-          criticality: 'high',
-          lastUpdated: new Date().toISOString(),
-          deadband: 0.15,
-          saturation: 0.25,
-          setpointChanges: 8,
-          modeChanges: 5,
-          valveTravel: 0.45,
-          settlingTime: 180,
-          overshoot: 0.25,
-          riseTime: 300,
-          peakError: 8.7,
-          integralError: 45.2,
-          derivativeError: 2.1,
-          controlError: 4.8,
-          valveReversals: 25,
-          noiseLevel: 0.12,
-          processGain: 0.8,
-          timeConstant: 120,
-          deadTime: 45
-        },
-        {
-          id: 'loop-3',
-          name: 'Flow Control Loop',
-          description: 'Feed flow rate control',
-          pvTag: 'FLOW_PV',
-          opTag: 'FLOW_OP',
-          spTag: 'FLOW_SP',
-          importance: 0.8,
-          classification: 'stiction',
-          serviceFactor: 0.62,
-          pi: 0.58,
-          rpi: 0.61,
-          oscillationIndex: 0.25,
-          stictionSeverity: 0.68,
-          plantArea: 'Feed Section',
-          criticality: 'medium',
-          lastUpdated: new Date().toISOString(),
-          deadband: 0.08,
-          saturation: 0.18,
-          setpointChanges: 15,
-          modeChanges: 2,
-          valveTravel: 0.35,
-          settlingTime: 90,
-          overshoot: 0.12,
-          riseTime: 200,
-          peakError: 5.2,
-          integralError: 28.9,
-          derivativeError: 1.5,
-          controlError: 2.8,
-          valveReversals: 12,
-          noiseLevel: 0.06,
           processGain: 1.0,
-          timeConstant: 150,
-          deadTime: 35
-        },
-        {
-          id: 'loop-4',
-          name: 'Level Control Loop',
-          description: 'Tank level control',
-          pvTag: 'LEVEL_PV',
-          opTag: 'LEVEL_OP',
-          spTag: 'LEVEL_SP',
-          importance: 0.6,
-          classification: 'normal',
-          serviceFactor: 0.92,
-          pi: 0.88,
-          rpi: 0.91,
-          oscillationIndex: 0.08,
-          stictionSeverity: 0.03,
-          plantArea: 'Storage Section',
-          criticality: 'low',
-          lastUpdated: new Date().toISOString(),
-          deadband: 0.01,
-          saturation: 0.03,
-          setpointChanges: 6,
-          modeChanges: 1,
-          valveTravel: 0.85,
-          settlingTime: 30,
-          overshoot: 0.02,
-          riseTime: 80,
-          peakError: 1.1,
-          integralError: 8.3,
-          derivativeError: 0.3,
-          controlError: 0.6,
-          valveReversals: 4,
-          noiseLevel: 0.02,
-          processGain: 1.5,
-          timeConstant: 200,
-          deadTime: 20
-        },
-        {
-          id: 'loop-5',
-          name: 'pH Control Loop',
-          description: 'pH control for neutralization',
-          pvTag: 'PH_PV',
-          opTag: 'PH_OP',
-          spTag: 'PH_SP',
-          importance: 0.5,
-          classification: 'deadband',
-          serviceFactor: 0.35,
-          pi: 0.28,
-          rpi: 0.31,
-          oscillationIndex: 0.45,
-          stictionSeverity: 0.22,
-          plantArea: 'Treatment Section',
-          criticality: 'medium',
-          lastUpdated: new Date().toISOString(),
-          deadband: 0.25,
-          saturation: 0.35,
-          setpointChanges: 20,
-          modeChanges: 8,
-          valveTravel: 0.25,
-          settlingTime: 240,
-          overshoot: 0.35,
-          riseTime: 400,
-          peakError: 12.5,
-          integralError: 67.8,
-          derivativeError: 3.2,
-          controlError: 7.1,
-          valveReversals: 35,
-          noiseLevel: 0.18,
-          processGain: 0.6,
-          timeConstant: 90,
-          deadTime: 60
-        }
-      ];
-
-      setLoops([...transformedLoops, ...mockLoops]);
+          timeConstant: 120,
+          deadTime: 30
+         };
+       });
+      
+      setLoops(transformedLoops);
 
       // Calculate KPI summary
-      const allLoops = [...transformedLoops, ...mockLoops];
       const summary: KPISummary = {
-        totalLoops: allLoops.length,
-        normalLoops: allLoops.filter(l => l.classification === 'normal').length,
-        oscillatingLoops: allLoops.filter(l => l.classification === 'oscillating').length,
-        stictionLoops: allLoops.filter(l => l.classification === 'stiction').length,
-        deadbandLoops: allLoops.filter(l => l.classification === 'deadband').length,
-        averageServiceFactor: allLoops.reduce((sum, l) => sum + l.serviceFactor, 0) / allLoops.length,
-        loopsExceedingThresholds: allLoops.filter(l => l.serviceFactor < 0.5 || l.pi < 0.5).length
+        totalLoops: transformedLoops.length,
+        normalLoops: transformedLoops.filter(l => l.classification === 'normal').length,
+        oscillatingLoops: transformedLoops.filter(l => l.classification === 'oscillating').length,
+        stictionLoops: transformedLoops.filter(l => l.classification === 'stiction').length,
+        deadbandLoops: transformedLoops.filter(l => l.classification === 'deadband').length,
+        averageServiceFactor: transformedLoops.length > 0 ? transformedLoops.reduce((sum, l) => sum + l.serviceFactor, 0) / transformedLoops.length : 0,
+        loopsExceedingThresholds: transformedLoops.filter(l => l.serviceFactor < 0.5 || l.pi < 0.5).length
       };
 
       setKpiSummary(summary);
 
-      // Mock oscillation clusters
-      const mockClusters: OscillationCluster[] = [
-        {
-          period: 5.2,
-          loops: ['loop-2', 'loop-3'],
-          rootCauseLoop: 'loop-2',
-          severity: 'high',
-          timestamp: new Date().toISOString(),
-          affectedLoops: [
-            { id: 'loop-2', name: 'Pressure Control Loop', classification: 'oscillating' },
-            { id: 'loop-3', name: 'Flow Control Loop', classification: 'oscillating' }
-          ]
-        },
-        {
-          period: 12.8,
-          loops: ['loop-1'],
-          rootCauseLoop: 'loop-1',
-          severity: 'medium',
-          timestamp: new Date(Date.now() - 3600000).toISOString(),
-          affectedLoops: [
-            { id: 'loop-1', name: 'Temperature Control Loop', classification: 'oscillating' }
-          ]
-        }
-      ];
-
-      setOscillationClusters(mockClusters);
+      // TODO: Fetch oscillation clusters from API when available
+      setOscillationClusters([]);
     } catch (err: any) {
       console.error('Error fetching dashboard data:', err);
       setError(err.response?.data?.message || 'Failed to fetch dashboard data');
@@ -491,8 +285,14 @@ export default function Dashboard() {
       </Typography>
 
       {error && (
-        <Alert severity="warning" sx={{ mb: 2 }}>
-          {error} (Showing sample data)
+        <Alert severity="error" sx={{ mb: 2 }}>
+          {error}
+        </Alert>
+      )}
+
+      {!loading && !error && loops.length === 0 && (
+        <Alert severity="info" sx={{ mb: 2 }}>
+          No control loops found. Please check your data source or contact your administrator.
         </Alert>
       )}
 
@@ -676,7 +476,12 @@ export default function Dashboard() {
                 overflow: 'hidden'
               }}
             >
-              {filteredLoops.map((loop) => (
+              {filteredLoops.length === 0 ? (
+                <Typography variant="body2" color="textSecondary" sx={{ p: 2, textAlign: 'center', width: '100%' }}>
+                  No loops match the current filters
+                </Typography>
+              ) : (
+                filteredLoops.map((loop) => (
                 <Tooltip
                   key={loop.id}
                   title={
@@ -802,7 +607,8 @@ export default function Dashboard() {
                     </CardContent>
                   </Card>
                 </Tooltip>
-              ))}
+                ))
+              )}
             </Box>
           </Paper>
         </Grid>

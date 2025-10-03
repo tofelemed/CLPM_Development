@@ -47,7 +47,6 @@ DB_PORT=5432
 DB_NAME=clpm
 DB_USER=postgres
 DB_PASSWORD=password
-OPCUA_ENDPOINT=opc.tcp://localhost:4840
 RABBITMQ_URL=amqp://localhost
 RABBITMQ_EXCHANGE=clpm
 ```
@@ -191,7 +190,6 @@ DB_PORT=5432
 DB_NAME=clpm
 DB_USER=postgres
 DB_PASSWORD=password
-OPCUA_ENDPOINT=opc.tcp://localhost:4840
 RABBITMQ_URL=amqp://localhost
 RABBITMQ_EXCHANGE=clpm
 ```
@@ -359,7 +357,7 @@ cd backend/kpi-worker && npm test
 
 ```bash
 # Test complete data flow
-cd backend/mock-opcua-server && npm run test:integration
+npm run test:integration
 ```
 
 ### Performance Testing

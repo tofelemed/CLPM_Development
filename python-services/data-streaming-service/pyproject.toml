@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[project]
+name = "data_streaming_service"
+version = "0.1.0"
+description = "CLPM real-time data streaming service for InfluxDB"
+authors = [{name="CLPM"}]
+dependencies = [
+  "influxdb-client>=1.40.0",
+  "numpy>=1.26.0",
+  "pandas>=2.1.0",
+  "python-dotenv>=1.0.0",
+  "pydantic>=2.7.1",
+  "asyncio-mqtt>=0.16.1",
+  "schedule>=1.2.0"
+]
+
+[project.scripts]
+data-streaming-service = "data_streaming_service.app:main"

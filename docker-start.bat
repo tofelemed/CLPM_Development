@@ -41,10 +41,11 @@ echo.
 echo 🌐 Access URLs:
 echo    Frontend: http://localhost:80
 echo    API Gateway: http://localhost:8080
-echo    InfluxDB Cloud: http://72.255.34.69:8086/
+echo    InfluxDB: http://localhost:8086 (admin / admin123)
 echo    Keycloak: http://localhost:8081
 echo    Redis: localhost:6379
 echo    Diagnostics: http://localhost:8050
+echo    pgAdmin: http://localhost:5050 (admin@clpm.com / admin123)
 echo.
 echo 📋 To view logs, run: docker-compose logs -f
 echo 📋 To stop services, run: docker-compose down

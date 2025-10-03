@@ -274,21 +274,21 @@ export default function LoopDetail() {
          const requestedWindow = parseTimeWindow(timeWindow);
          const availableDuration = dataEndTime.getTime() - dataStartTime.getTime();
          
-         // Smart sampling: limit data points based on time window
-         let sampleInterval = '1 minute'; // Default
+         // Smart sampling: use aggregated data for better performance
+         let sampleInterval = '1m'; // Use aggregated data from PostgreSQL
          let limit = 1000; // Default limit
          
          if (timeWindow === '1h') {
-           sampleInterval = '1 minute';
+           sampleInterval = '1m'; // 1-minute aggregated data
            limit = 60;
          } else if (timeWindow === '6h') {
-           sampleInterval = '5 minutes';
+           sampleInterval = '5m'; // 5-minute aggregated data
            limit = 72;
          } else if (timeWindow === '24h') {
-           sampleInterval = '15 minutes';
+           sampleInterval = '15m'; // 15-minute aggregated data
            limit = 96;
          } else if (timeWindow === '7d') {
-           sampleInterval = '1 hour';
+           sampleInterval = '1h'; // 1-hour aggregated data
            limit = 168;
          }
          
@@ -297,8 +297,8 @@ export default function LoopDetail() {
          const startTime = new Date(endTime.getTime() - requestedWindow);
          
          console.log('Requested window:', timeWindow, '(', requestedWindow / (1000 * 60 * 60), 'hours)');
-         console.log('Sample interval:', sampleInterval, 'Limit:', limit);
-         console.log('Fetching trend data from:', startTime.toISOString(), 'to:', endTime.toISOString());
+         console.log('Using aggregated data interval:', sampleInterval, 'Limit:', limit);
+         console.log('Fetching trend data from PostgreSQL agg_1m table:', startTime.toISOString(), 'to:', endTime.toISOString());
          
          const dataResponse = await axios.get(`${API}/loops/${id}/data`, {
            params: {

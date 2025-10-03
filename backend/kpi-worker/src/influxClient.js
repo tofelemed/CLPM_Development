@@ -6,10 +6,10 @@ const log = pino({ name: 'kpi-influxdb-client' });
 export class InfluxDBClient {
   constructor(config) {
     this.config = {
-      url: config.url || process.env.INFLUXDB_URL || 'http://72.255.34.69:8086/',
-      token: config.token || process.env.INFLUXDB_TOKEN || '4eYvsu8wZCJ6tKuE2sxvFHkvYFwSMVK0011hEEiojvejzpSaij86vYQomN_12au6eK-2MZ6Knr-Sax201y70w==',
-      org: config.org || process.env.INFLUXDB_ORG || 'some_org',
-      bucket: config.bucket || process.env.INFLUXDB_BUCKET || 'some_data',
+      url: config.url || process.env.INFLUXDB_URL || 'http://influxdb:8086/',
+      token: config.token || process.env.INFLUXDB_TOKEN || 'o6cjAfkS_jFCvEePxDyz33zMQaJgbbSz_oqkSPzMTbROImhLlwDHwh8la4VMkMyNJsHWrVYs_JEHpWZGtFeaDw==',
+      org: config.org || process.env.INFLUXDB_ORG || 'clpm',
+      bucket: config.bucket || process.env.INFLUXDB_BUCKET || 'clpm_data',
       measurement: config.measurement || process.env.INFLUXDB_MEASUREMENT || 'control_loops',
       ...config
     };
@@ -46,43 +46,41 @@ export class InfluxDBClient {
 
   async queryData(loopId, startTime, endTime, fields = ['pv', 'op', 'sp', 'mode', 'valve_position']) {
     try {
-      const fieldFilters = fields.map(field => `r._field == "${field}"`).join(' or ');
-      
+      // Query with pivot to combine fields into single records per timestamp
+      // Note: Mode is a tag in InfluxDB, so it's preserved through the pivot
+      // Convert ISO strings to Flux time literals by wrapping in time()
       const fluxQuery = `
         from(bucket: "${this.config.bucket}")
-          |> range(start: ${startTime}, stop: ${endTime})
+          |> range(start: time(v: "${startTime}"), stop: time(v: "${endTime}"))
           |> filter(fn: (r) => r._measurement == "${this.config.measurement}")
           |> filter(fn: (r) => r.loop_id == "${loopId}")
-          |> filter(fn: (r) => ${fieldFilters})
-          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
+          |> filter(fn: (r) => r._field == "PV" or r._field == "OP" or r._field == "SP" or r._field == "valve_position")
+          |> pivot(rowKey:["_time", "Mode"], columnKey: ["_field"], valueColumn: "_value")
           |> sort(columns: ["_time"])
       `;
 
       log.debug({ loopId, startTime, endTime, fields }, 'Executing KPI InfluxDB query');
-      
+
       const results = [];
-      await this.queryApi.queryRaw(fluxQuery, {
-        next: (row, tableMeta) => {
-          const o = tableMeta.toObject(row);
-          results.push({
-            ts: new Date(o._time),
-            loop_id: loopId,
-            pv: o.pv || null,
-            op: o.op || null,
-            sp: o.sp || null,
-            mode: o.mode || null,
-            valve_position: o.valve_position || null,
-            quality_code: 192 // Default good quality for InfluxDB data
-          });
-        },
-        error: (error) => {
-          log.error({ error: error.message }, 'KPI InfluxDB query error');
-          throw error;
-        },
-        complete: () => {
-          log.debug({ loopId, count: results.length }, 'KPI InfluxDB query completed');
-        }
-      });
+      
+      // Use collectRows instead of queryRaw callbacks
+      const rows = await this.queryApi.collectRows(fluxQuery);
+      log.debug({ loopId, rowCount: rows.length }, 'Rows collected from InfluxDB');
+      
+      for (const row of rows) {
+        results.push({
+          ts: new Date(row._time),
+          loop_id: loopId,
+          pv: row.PV !== undefined ? parseFloat(row.PV) : null,
+          op: row.OP !== undefined ? parseFloat(row.OP) : null,
+          sp: row.SP !== undefined ? parseFloat(row.SP) : null,
+          mode: row.Mode || null, // Mode is a tag, preserved in pivot rowKey
+          valve_position: row.valve_position !== undefined ? parseFloat(row.valve_position) : null,
+          quality_code: 192 // Default good quality for InfluxDB data
+        });
+      }
+      
+      log.debug({ loopId, resultsCount: results.length }, 'KPI InfluxDB query completed');
 
       return results;
     } catch (error) {
@@ -95,38 +93,30 @@ export class InfluxDBClient {
     try {
       const fluxQuery = `
         from(bucket: "${this.config.bucket}")
-          |> range(start: ${startTime}, stop: ${endTime})
+          |> range(start: time(v: "${startTime}"), stop: time(v: "${endTime}"))
           |> filter(fn: (r) => r._measurement == "${this.config.measurement}")
           |> filter(fn: (r) => r.loop_id == "${loopId}")
-          |> filter(fn: (r) => r._field == "pv" or r._field == "op" or r._field == "sp")
           |> aggregateWindow(every: ${window}, fn: mean, createEmpty: false)
-          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
           |> sort(columns: ["_time"])
       `;
 
       log.debug({ loopId, startTime, endTime, window }, 'Executing KPI aggregated InfluxDB query');
       
+      const rows = await this.queryApi.collectRows(fluxQuery);
       const results = [];
-      await this.queryApi.queryRaw(fluxQuery, {
-        next: (row, tableMeta) => {
-          const o = tableMeta.toObject(row);
-          results.push({
-            bucket: new Date(o._time),
-            loop_id: loopId,
-            pv_avg: o.pv || null,
-            op_avg: o.op || null,
-            sp_avg: o.sp || null,
-            pv_count: 1 // InfluxDB aggregation doesn't provide count
-          });
-        },
-        error: (error) => {
-          log.error({ error: error.message }, 'KPI InfluxDB aggregated query error');
-          throw error;
-        },
-        complete: () => {
-          log.debug({ loopId, count: results.length }, 'KPI InfluxDB aggregated query completed');
-        }
-      });
+      
+      for (const row of rows) {
+        results.push({
+          bucket: new Date(row._time),
+          loop_id: loopId,
+          pv_avg: row.pv || null,
+          op_avg: row.op || null,
+          sp_avg: row.sp || null,
+          pv_count: 1 // InfluxDB aggregation doesn't provide count
+        });
+      }
+      
+      log.debug({ loopId, count: results.length }, 'KPI InfluxDB aggregated query completed');
 
       return results;
     } catch (error) {
@@ -137,7 +127,7 @@ export class InfluxDBClient {
 
   async close() {
     try {
-      this.client.close();
+      // InfluxDB v2 client doesn't have a close method, connections are managed automatically
       log.info('KPI InfluxDB client closed');
     } catch (error) {
       log.error({ error: error.message }, 'Error closing KPI InfluxDB client');

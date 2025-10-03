@@ -30,26 +30,12 @@ RABBITMQ_URL=amqp://guest:guest@localhost:5672
 REDIS_URL=redis://localhost:6379/0
 DIAG_SERVICE_URL=http://localhost:8050
 API_PORT=8080
-OPCUA_API_BASE=http://localhost:4842
 ```
 
-### OPC UA Client (`backend/opcua-client/.env.local`)
-```bash
-NODE_ENV=development
-PORT=4842
-METRICS_PORT=3001
-APPLICATION_NAME=CLPM OPC UA Client
-APPLICATION_URI=urn:clpm:opcua:client
-CERTIFICATE_DIR=./certificates
-AUTO_TRUST_UNKNOWN_CERTS=true
-DEFAULT_SAMPLING_INTERVAL=200
-CORS_ORIGINS=*
-```
 
 ### Frontend (`frontend/.env.local`)
 ```bash
 VITE_API_BASE=http://localhost:8080/api/v1
-VITE_OPCUA_API_BASE=/opcua-direct
 VITE_OIDC_ISSUER=http://localhost:8081/realms/clpm
 ```
 
@@ -59,7 +45,6 @@ After starting all services, you can access:
 
 - **Frontend**: http://localhost:5173
 - **API Gateway**: http://localhost:8080
-- **OPC UA Client**: http://localhost:4842
 - **Keycloak**: http://localhost:8081
 - **RabbitMQ Management**: http://localhost:15672
 
@@ -71,7 +56,6 @@ If you see `ERR_CONNECTION_REFUSED` errors:
 
 1. **Check if services are running:**
    - API Gateway should be on port 8080
-   - OPC UA Client should be on port 4842
    - Database should be on port 5432
 
 2. **Check service logs:**
@@ -125,16 +109,8 @@ npm install
 npm run start:dev
 ```
 
-### 3. Start OPC UA Client
-```bash
-cd backend/opcua-client
-npm install
-set PORT=4842  # Windows
-export PORT=4842  # Linux/Mac
-npm run dev
-```
 
-### 4. Start Frontend
+### 3. Start Frontend
 ```bash
 cd frontend
 npm install

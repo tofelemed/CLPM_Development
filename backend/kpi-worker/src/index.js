@@ -24,8 +24,8 @@ class KPIWorkerService {
         host: process.env.DB_HOST || 'localhost',
         port: process.env.DB_PORT || 5432,
         database: process.env.DB_NAME || 'clpm',
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'password',
+        user: process.env.DB_USER || 'clpm',
+        password: process.env.DB_PASSWORD || 'clpm_pwd',
         max: 20,
         idleTimeoutMillis: 30000,
         connectionTimeoutMillis: 2000,
@@ -39,9 +39,9 @@ class KPIWorkerService {
       // Initialize InfluxDB client
       this.influxClient = new InfluxDBClient({
         url: process.env.INFLUXDB_URL || 'http://localhost:8086',
-        token: process.env.INFLUXDB_TOKEN,
-        org: process.env.INFLUXDB_ORG,
-        bucket: process.env.INFLUXDB_BUCKET || 'clpm',
+        token: process.env.INFLUXDB_TOKEN || 'o6cjAfkS_jFCvEePxDyz33zMQaJgbbSz_oqkSPzMTbROImhLlwDHwh8la4VMkMyNJsHWrVYs_JEHpWZGtFeaDw==',
+        org: process.env.INFLUXDB_ORG || 'clpm',
+        bucket: process.env.INFLUXDB_BUCKET || 'clpm_data',
         measurement: process.env.INFLUXDB_MEASUREMENT || 'control_loops'
       });
 
@@ -107,31 +107,33 @@ class KPIWorkerService {
   }
 
   async calculateLoopKPI(loop) {
-    const jobId = `kpi-${loop.id}-${Date.now()}`;
+
+
+    const jobId = `kpi-${loop.loop_id}-${Date.now()}`;
     
     if (this.activeJobs.has(jobId)) {
-      log.warn({ loopId: loop.id }, 'KPI calculation already in progress for loop');
+      log.warn({ loopId: loop.loop_id }, 'KPI calculation already in progress for loop');
       return;
     }
     
     this.activeJobs.add(jobId);
     
     try {
-      log.info({ loopId: loop.id, name: loop.name }, 'Starting KPI calculation');
+      log.info({ loopId: loop.loop_id, name: loop.name }, 'Starting KPI calculation');
       
       // Get analysis window
       const endTime = new Date();
       const startTime = new Date(endTime.getTime() - (this.kpiWindowMinutes * 60 * 1000));
       
       // Get loop configuration
-      const config = await this.getLoopConfiguration(loop.id);
+      const config = await this.getLoopConfiguration(loop.loop_id);
       
       // Get data for analysis window from InfluxDB
-      const data = await this.getAnalysisData(loop.id, startTime, endTime);
+      const data = await this.getAnalysisData(loop.loop_id, startTime, endTime);
       
       if (data.length === 0) {
-        log.warn({ loopId: loop.id }, 'No data available for KPI calculation');
-        await this.insertEmptyKPIResult(loop.id, endTime);
+        log.warn({ loopId: loop.loop_id }, 'No data available for KPI calculation');
+        await this.insertEmptyKPIResult(loop.loop_id, endTime);
         return;
       }
       
@@ -139,18 +141,18 @@ class KPIWorkerService {
       const kpis = this.calculateKPIs(data, config);
       
       // Store KPI results
-      await this.insertKPIResult(loop.id, endTime, kpis);
+      await this.insertKPIResult(loop.loop_id, endTime, kpis);
       
-      log.info({ loopId: loop.id, kpis }, 'KPI calculation completed successfully');
+      log.info({ loopId: loop.loop_id, kpis }, 'KPI calculation completed successfully');
       
     } catch (error) {
-      log.error({ loopId: loop.id, error: error.message }, 'KPI calculation failed');
+      log.error({ loopId: loop.loop_id, error: error.message }, 'KPI calculation failed');
       
       // Insert error result
       try {
-        await this.insertErrorKPIResult(loop.id, new Date(), error.message);
+        await this.insertErrorKPIResult(loop.loop_id, new Date(), error.message);
       } catch (insertError) {
-        log.error({ loopId: loop.id, error: insertError.message }, 'Failed to insert error KPI result');
+        log.error({ loopId: loop.loop_id, error: insertError.message }, 'Failed to insert error KPI result');
       }
     } finally {
       this.activeJobs.delete(jobId);
@@ -180,7 +182,7 @@ class KPIWorkerService {
       
       // Service Factor
       const autoModeCount = modes.filter(m => 
-        m && (m.toString().toUpperCase().includes('AUTO') || m.toString().toUpperCase().includes('CASCADE'))
+        m && (m.toString().toUpperCase().includes('AUT') || m.toString().toUpperCase().includes('CAS'))
       ).length;
       const serviceFactor = validData.length > 0 ? autoModeCount / validData.length : 0;
       
@@ -258,7 +260,7 @@ class KPIWorkerService {
         stictionSeverity = maxCorrelation;
       }
       
-      return {
+      const result = {
         service_factor: Math.round(serviceFactor * 1000) / 1000,
         effective_sf: Math.round(effectiveServiceFactor * 1000) / 1000,
         sat_percent: Math.round(saturationPercentage * 1000) / 1000,
@@ -268,6 +270,8 @@ class KPIWorkerService {
         osc_index: Math.round(oscillationIndex * 1000) / 1000,
         stiction: Math.round(stictionSeverity * 1000) / 1000
       };
+      
+      return result;
       
     } catch (error) {
       log.error({ error: error.message }, 'Error calculating KPIs');
@@ -290,8 +294,9 @@ class KPIWorkerService {
 
   async getActiveLoops() {
     try {
+      // Note: The database has 'loop_id' column directly
       const query = `
-        SELECT id, name, pv_tag, op_tag, sp_tag, mode_tag, valve_tag
+        SELECT loop_id, name, pv_tag, op_tag, sp_tag, mode_tag, valve_tag, importance
         FROM loops 
         WHERE deleted_at IS NULL
         ORDER BY importance DESC, created_at ASC

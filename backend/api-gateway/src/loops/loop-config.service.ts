@@ -5,14 +5,12 @@ import { LoopConfig } from './entities/loop-config.entity';
 import { CreateLoopConfigDto } from './dto/create-loop-config.dto';
 import { UpdateLoopConfigDto } from './dto/update-loop-config.dto';
 import { LoopsService } from './loops.service';
-import { OpcuaService } from './opcua.service';
 
 @Injectable()
 export class LoopConfigService {
   constructor(
     @InjectRepository(LoopConfig) private repo: Repository<LoopConfig>,
-    private loopsService: LoopsService,
-    private opcuaService: OpcuaService
+    private loopsService: LoopsService
   ) {}
 
   async create(loopId: string, dto: CreateLoopConfigDto): Promise<LoopConfig> {
@@ -23,16 +21,6 @@ export class LoopConfigService {
     const existingConfig = await this.repo.findOne({ where: { loopId } });
     if (existingConfig) {
       return this.update(loopId, dto);
-    }
-
-    // Create OPC UA monitoring
-    let opcuaInfo;
-    try {
-      opcuaInfo = await this.opcuaService.createLoopMonitoring(loop, dto);
-    } catch (error) {
-      // Log error but don't fail config creation - monitoring can be set up later
-      console.warn(`Failed to setup OPC UA monitoring for loop ${loopId}:`, error.message);
-      opcuaInfo = { connectionId: null, monitoredItems: [], samplingInterval: dto.sampling_interval };
     }
 
     const config = this.repo.create({
@@ -50,8 +38,8 @@ export class LoopConfigService {
       piLowAlarm: dto.alarm_thresholds?.pi_low || 0.65,
       oscillationHighAlarm: dto.alarm_thresholds?.oscillation_high || 0.4,
       stictionHighAlarm: dto.alarm_thresholds?.stiction_high || 0.5,
-      connectionId: opcuaInfo.connectionId,
-      monitoredItems: opcuaInfo.monitoredItems
+      connectionId: null,
+      monitoredItems: []
     });
 
     return this.repo.save(config);
@@ -69,25 +57,6 @@ export class LoopConfigService {
     const config = await this.repo.findOne({ where: { loopId } });
     if (!config) {
       throw new NotFoundException('Loop configuration not found');
-    }
-
-    // Update monitoring if sampling interval changed
-    if (dto.sampling_interval && dto.sampling_interval !== config.samplingInterval) {
-      try {
-        const loop = await this.loopsService.findOne(loopId);
-        
-        // Remove old monitoring
-        if (config.connectionId && config.monitoredItems) {
-          await this.opcuaService.removeLoopMonitoring(config.connectionId, config.monitoredItems);
-        }
-        
-        // Setup new monitoring
-        const opcuaInfo = await this.opcuaService.createLoopMonitoring(loop, dto);
-        config.connectionId = opcuaInfo.connectionId;
-        config.monitoredItems = opcuaInfo.monitoredItems;
-      } catch (error) {
-        console.warn(`Failed to update OPC UA monitoring for loop ${loopId}:`, error.message);
-      }
     }
 
     // Update configuration values
@@ -115,15 +84,6 @@ export class LoopConfigService {
       return; // Already deleted
     }
 
-    // Remove OPC UA monitoring
-    if (config.connectionId && config.monitoredItems) {
-      try {
-        await this.opcuaService.removeLoopMonitoring(config.connectionId, config.monitoredItems);
-      } catch (error) {
-        console.warn(`Failed to remove OPC UA monitoring for loop ${loopId}:`, error.message);
-      }
-    }
-
     await this.repo.delete({ loopId });
   }
 
@@ -132,13 +92,14 @@ export class LoopConfigService {
     
     const results: { [tag: string]: boolean } = {};
     
-    results.pv = await this.opcuaService.validateTag(loop.pvTag);
-    results.op = await this.opcuaService.validateTag(loop.opTag);
-    results.sp = await this.opcuaService.validateTag(loop.spTag);
-    results.mode = await this.opcuaService.validateTag(loop.modeTag);
+    // Basic validation - check if tags are not empty
+    results.pv = !!loop.pvTag;
+    results.op = !!loop.opTag;
+    results.sp = !!loop.spTag;
+    results.mode = !!loop.modeTag;
     
     if (loop.valveTag) {
-      results.valve = await this.opcuaService.validateTag(loop.valveTag);
+      results.valve = !!loop.valveTag;
     }
 
     return results;

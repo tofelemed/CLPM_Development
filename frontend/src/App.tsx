@@ -15,7 +15,6 @@ import LoopDetail from './pages/LoopDetail';
 import APCAttainment from './pages/APCAttainment';
 import OscillationClusters from './pages/OscillationClusters';
 import Reports from './pages/Reports';
-import { OPCUAConfig } from './pages/OPCUAConfig';
 import LoopConfiguration from './pages/LoopConfiguration';
 
 // Context
@@ -84,11 +83,6 @@ function AppContent() {
         <Route path="/reports" element={<Reports />} />
         
         {/* Configuration Routes - Admin/Engineer Only */}
-        <Route path="/config/opc" element={
-          <AdminRoute>
-            <OPCUAConfig />
-          </AdminRoute>
-        } />
         <Route path="/config/loops" element={
           <AdminRoute>
             <LoopConfiguration />

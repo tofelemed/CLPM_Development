@@ -13,7 +13,6 @@ import {
   AlertTriangle,
   CheckCircle
 } from 'lucide-react';
-import LoopConfiguration from '../components/LoopConfiguration';
 
 const API = import.meta.env.VITE_API_BASE || 'http://localhost:8080/api/v1';
 
@@ -402,15 +401,17 @@ const LoopConfig: React.FC = () => {
         </TabsContent>
       </Tabs>
 
-      {/* Configuration Modal */}
+      {/* Configuration Modal - Disabled */}
       {showConfigModal && (
-        <LoopConfiguration
-          open={showConfigModal}
-          onClose={() => {
-            setShowConfigModal(false);
-            handleConfigUpdate();
-          }}
-        />
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded-lg max-w-md">
+            <h2 className="text-xl font-semibold mb-4">Loop Configuration</h2>
+            <p className="text-gray-600 mb-4">Configuration functionality is currently disabled.</p>
+            <Button onClick={() => setShowConfigModal(false)}>
+              Close
+            </Button>
+          </div>
+        </div>
       )}
     </div>
   );
