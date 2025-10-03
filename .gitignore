@@ -246,3 +246,7 @@ charts/*/requirements.lock
 
 # Application specific
 # Add any application-specific files that should be ignored here
+
+# Large data files
+scripts/annotated_TIC208030_with_loop_id.csv
+*.csv
