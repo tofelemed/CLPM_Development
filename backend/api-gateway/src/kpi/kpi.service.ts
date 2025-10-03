@@ -284,9 +284,9 @@ export class KpiService {
   }
 
   private async validateLoopExists(loopId: string) {
-    const sql = `SELECT id FROM loops WHERE id = $1 AND deleted_at IS NULL`;
+    const sql = `SELECT loop_id FROM loops WHERE loop_id = $1 AND deleted_at IS NULL`;
     const { rows } = await this.pg.query(sql, [loopId]);
-    
+
     if (rows.length === 0) {
       throw new NotFoundException(`Loop with ID ${loopId} not found`);
     }
@@ -411,7 +411,7 @@ export class KpiService {
             ELSE 'Unstable'
           END as process_stability
         FROM kpi_results kr
-        JOIN loops l ON kr.loop_id = l.id
+        JOIN loops l ON kr.loop_id = l.loop_id
         WHERE kr.loop_id = $1 AND l.deleted_at IS NULL
       `;
       
