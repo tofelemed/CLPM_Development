@@ -67,28 +67,25 @@ export class InfluxDBService {
 
       const results: any[] = [];
 
-      await this.queryApi.queryRaw(query, {
-        next: (row: any, tableMeta: any) => {
-          const o = tableMeta.toObject(row);
-          results.push({
-            ts: new Date(o._time),
-            loop_id: loopId,
-            pv: o.pv !== undefined ? parseFloat(o.pv) : null,
-            op: o.op !== undefined ? parseFloat(o.op) : null,
-            sp: o.sp !== undefined ? parseFloat(o.sp) : null,
-            mode: o.Mode || null,
-            valve_position: o.valve_position !== undefined ? parseFloat(o.valve_position) : null,
-            quality_code: 192 // Default good quality for InfluxDB data
-          });
-        },
-        error: (error: any) => {
-          this.logger.error('InfluxDB query error:', error);
-          throw error;
-        },
-        complete: () => {
-          this.logger.log(`Retrieved ${results.length} data points for loop ${loopId}`);
-        }
-      });
+      // Use collectRows which waits for all results
+      const rows = await this.queryApi.collectRows(query);
+
+      this.logger.log(`Retrieved ${rows.length} rows from InfluxDB for loop ${loopId}`);
+
+      for (const row of rows) {
+        results.push({
+          ts: new Date(row._time),
+          loop_id: loopId,
+          pv: row.pv !== undefined ? parseFloat(row.pv) : null,
+          op: row.op !== undefined ? parseFloat(row.op) : null,
+          sp: row.sp !== undefined ? parseFloat(row.sp) : null,
+          mode: row.Mode || null,
+          valve_position: row.valve_position !== undefined ? parseFloat(row.valve_position) : null,
+          quality_code: 192 // Default good quality for InfluxDB data
+        });
+      }
+
+      this.logger.log(`Processed ${results.length} data points for loop ${loopId}`);
 
       return results;
     } catch (error) {
