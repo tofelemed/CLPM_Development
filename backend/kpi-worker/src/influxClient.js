@@ -54,7 +54,7 @@ export class InfluxDBClient {
           |> range(start: time(v: "${startTime}"), stop: time(v: "${endTime}"))
           |> filter(fn: (r) => r._measurement == "${this.config.measurement}")
           |> filter(fn: (r) => r.loop_id == "${loopId}")
-          |> filter(fn: (r) => r._field == "PV" or r._field == "OP" or r._field == "SP" or r._field == "valve_position")
+          |> filter(fn: (r) => r._field == "pv" or r._field == "op" or r._field == "sp" or r._field == "valve_position")
           |> pivot(rowKey:["_time", "Mode"], columnKey: ["_field"], valueColumn: "_value")
           |> sort(columns: ["_time"])
       `;
@@ -71,9 +71,9 @@ export class InfluxDBClient {
         results.push({
           ts: new Date(row._time),
           loop_id: loopId,
-          pv: row.PV !== undefined ? parseFloat(row.PV) : null,
-          op: row.OP !== undefined ? parseFloat(row.OP) : null,
-          sp: row.SP !== undefined ? parseFloat(row.SP) : null,
+          pv: row.pv !== undefined ? parseFloat(row.pv) : null,
+          op: row.op !== undefined ? parseFloat(row.op) : null,
+          sp: row.sp !== undefined ? parseFloat(row.sp) : null,
           mode: row.Mode || null, // Mode is a tag, preserved in pivot rowKey
           valve_position: row.valve_position !== undefined ? parseFloat(row.valve_position) : null,
           quality_code: 192 // Default good quality for InfluxDB data
@@ -96,15 +96,17 @@ export class InfluxDBClient {
           |> range(start: time(v: "${startTime}"), stop: time(v: "${endTime}"))
           |> filter(fn: (r) => r._measurement == "${this.config.measurement}")
           |> filter(fn: (r) => r.loop_id == "${loopId}")
+          |> filter(fn: (r) => r._field == "pv" or r._field == "op" or r._field == "sp")
           |> aggregateWindow(every: ${window}, fn: mean, createEmpty: false)
+          |> pivot(rowKey:["_time"], columnKey: ["_field"], valueColumn: "_value")
           |> sort(columns: ["_time"])
       `;
 
       log.debug({ loopId, startTime, endTime, window }, 'Executing KPI aggregated InfluxDB query');
-      
+
       const rows = await this.queryApi.collectRows(fluxQuery);
       const results = [];
-      
+
       for (const row of rows) {
         results.push({
           bucket: new Date(row._time),
@@ -115,7 +117,7 @@ export class InfluxDBClient {
           pv_count: 1 // InfluxDB aggregation doesn't provide count
         });
       }
-      
+
       log.debug({ loopId, count: results.length }, 'KPI InfluxDB aggregated query completed');
 
       return results;
