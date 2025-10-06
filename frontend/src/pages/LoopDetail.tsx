@@ -360,7 +360,7 @@ export default function LoopDetail() {
           rpi: Number(kpi.rpi) || 0,
           oscillationIndex: Number(kpi.osc_index) || 0,
           stictionIndex: Number(kpi.stiction) || 0
-        }));
+        })).sort((a: KPIData, b: KPIData) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         
         setKpiData(kpiData);
         

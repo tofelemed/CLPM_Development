@@ -355,3 +355,7 @@ Field	Value
 URL	http://localhost:5050
 Email	admin@clpm.com
 Password	admin123
+
+
+data streaming service
+python run_service.py
