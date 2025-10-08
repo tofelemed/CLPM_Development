@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import {
   Box,
   Grid,
@@ -118,13 +118,7 @@ export default function Dashboard() {
   
   const navigate = useNavigate();
 
-  useEffect(() => {
-    fetchDashboardData();
-    const interval = setInterval(fetchDashboardData, 300000); // Refresh every 5 minutes
-    return () => clearInterval(interval);
-  }, []);
-
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
       try {
         setLoading(true);
         setError(null);
@@ -217,7 +211,13 @@ export default function Dashboard() {
       } finally {
         setLoading(false);
       }
-    };
+    }, [startDate, endDate]);
+
+  useEffect(() => {
+    fetchDashboardData();
+    const interval = setInterval(fetchDashboardData, 300000); // Refresh every 5 minutes
+    return () => clearInterval(interval);
+  }, [fetchDashboardData]);
 
   const getClassificationColor = (classification: string) => {
     switch (classification) {
@@ -240,9 +240,9 @@ export default function Dashboard() {
 
   const getLoopColor = (loop: Loop) => {
     // Enhanced color logic based on multiple KPIs
-    const avgPerformance = (loop.serviceFactor + loop.pi + loop.rpi) / 3;
-    const oscillationImpact = loop.oscillationIndex > 0.3 ? 0.2 : 0;
-    const stictionImpact = loop.stictionSeverity > 0.5 ? 0.2 : 0;
+    const avgPerformance = ((loop.serviceFactor || 0) + (loop.pi || 0) + (loop.rpi || 0)) / 3;
+    const oscillationImpact = (loop.oscillationIndex || 0) > 0.3 ? 0.2 : 0;
+    const stictionImpact = (loop.stictionSeverity || 0) > 0.5 ? 0.2 : 0;
     const overallScore = avgPerformance - oscillationImpact - stictionImpact;
     
     if (overallScore > 0.7) return '#4caf50'; // Green
@@ -341,7 +341,7 @@ export default function Dashboard() {
                 Avg Service Factor
               </Typography>
               <Typography variant="h5" sx={{ fontWeight: 'bold', fontSize: '1.25rem' }}>
-                {(kpiSummary?.averageServiceFactor || 0).toFixed(1)}
+                {((kpiSummary?.averageServiceFactor || 0) * 100).toFixed(1)}%
               </Typography>
             </CardContent>
           </Card>
@@ -602,7 +602,7 @@ export default function Dashboard() {
                         }}
                       />
                       <Typography variant="caption" sx={{ display: 'block', fontSize: '0.55rem', lineHeight: 1 }}>
-                        {loop.serviceFactor.toFixed(1)}
+                        {(loop.serviceFactor * 100).toFixed(0)}%
                       </Typography>
                     </CardContent>
                   </Card>

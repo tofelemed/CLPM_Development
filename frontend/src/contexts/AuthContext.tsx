@@ -56,8 +56,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // In production, this would be an API call to verify the token
       const storedUserData = localStorage.getItem('userData');
       if (storedUserData) {
-        const userData = JSON.parse(storedUserData);
-        setUser(userData);
+        try {
+          const userData = JSON.parse(storedUserData);
+          setUser(userData);
+        } catch (parseError) {
+          console.error('Failed to parse user data:', parseError);
+          // Clear corrupted data and fallback
+          localStorage.removeItem('userData');
+          localStorage.removeItem('authToken');
+          delete axios.defaults.headers.common['Authorization'];
+          setUser(null);
+        }
       } else {
         // Fallback to engineer if no stored data
         const mockUser: User = {
@@ -73,6 +82,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       localStorage.removeItem('authToken');
       localStorage.removeItem('userData');
       delete axios.defaults.headers.common['Authorization'];
+      setUser(null);
     } finally {
       setLoading(false);
     }

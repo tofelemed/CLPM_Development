@@ -325,7 +325,7 @@ export default function OscillationClusters() {
               </Typography>
               <Typography variant="h4">
                 {clusters.length > 0 ? 
-                  (clusters.reduce((sum, c) => sum + c.period, 0) / clusters.length).toFixed(1) : '0'}s
+                  (clusters.reduce((sum, c) => sum + (c.period || 0), 0) / clusters.length).toFixed(1) : '0'}s
               </Typography>
             </CardContent>
           </Card>

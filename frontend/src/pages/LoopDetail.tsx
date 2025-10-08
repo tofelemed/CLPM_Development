@@ -337,9 +337,12 @@ export default function LoopDetail() {
 
       // Fetch comprehensive KPI history
       try {
-        // Use a wider time window to ensure we get data
+        // Use the selected kpiWindow time range
+        const kpiWindowMs = parseTimeWindow(kpiWindow);
         const endTime = new Date();
-        const startTime = new Date(endTime.getTime() - (30 * 24 * 60 * 60 * 1000)); // 30 days
+        const startTime = new Date(endTime.getTime() - kpiWindowMs);
+        
+        console.log('Fetching KPI data for window:', kpiWindow, 'from:', startTime.toISOString(), 'to:', endTime.toISOString());
         
         const kpiResponse = await axios.get(`${API}/loops/${id}/kpis/comprehensive`, {
           params: {
@@ -625,11 +628,11 @@ export default function LoopDetail() {
                      <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
              <Typography variant="h6">Live Trend Data</Typography>
              <Box display="flex" alignItems="center" gap={2}>
-               <Typography variant="body2" color="textSecondary">
-                 Available: {trendData.length > 0 ? 
-                   `${format(new Date(trendData[0]?.timestamp), 'MMM dd, HH:mm')} - ${format(new Date(trendData[trendData.length - 1]?.timestamp), 'MMM dd, HH:mm')}` : 
-                   'No data available'}
-               </Typography>
+              <Typography variant="body2" color="textSecondary">
+                Available: {trendData.length > 0 && trendData[0] && trendData[trendData.length - 1] ? 
+                  `${format(new Date(trendData[0].timestamp), 'MMM dd, HH:mm')} - ${format(new Date(trendData[trendData.length - 1].timestamp), 'MMM dd, HH:mm')}` : 
+                  'No data available'}
+              </Typography>
                <FormControl size="small" sx={{ minWidth: 120 }}>
                  <InputLabel>Time Window</InputLabel>
                  <Select
@@ -1018,25 +1021,25 @@ export default function LoopDetail() {
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Overall Performance</Typography>
                       <Typography variant="h6" color="primary.main">
-                        {((loop.serviceFactor + loop.pi + loop.rpi) / 3 * 100).toFixed(1)}%
+                        {(((loop.serviceFactor || 0) + (loop.pi || 0) + (loop.rpi || 0)) / 3 * 100).toFixed(1)}%
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Control Quality</Typography>
-                      <Typography variant="h6" color={loop.oscillationIndex < 0.3 && loop.stictionSeverity < 0.3 ? 'success.main' : 'error.main'}>
-                        {loop.oscillationIndex < 0.3 && loop.stictionSeverity < 0.3 ? 'Good' : 'Poor'}
+                      <Typography variant="h6" color={(loop.oscillationIndex || 0) < 0.3 && (loop.stictionSeverity || 0) < 0.3 ? 'success.main' : 'error.main'}>
+                        {(loop.oscillationIndex || 0) < 0.3 && (loop.stictionSeverity || 0) < 0.3 ? 'Good' : 'Poor'}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Valve Health</Typography>
-                      <Typography variant="h6" color={loop.stictionSeverity < 0.3 && loop.valveReversals < 15 ? 'success.main' : 'error.main'}>
-                        {loop.stictionSeverity < 0.3 && loop.valveReversals < 15 ? 'Good' : 'Poor'}
+                      <Typography variant="h6" color={(loop.stictionSeverity || 0) < 0.3 && (loop.valveReversals || 0) < 15 ? 'success.main' : 'error.main'}>
+                        {(loop.stictionSeverity || 0) < 0.3 && (loop.valveReversals || 0) < 15 ? 'Good' : 'Poor'}
                       </Typography>
                     </Grid>
                     <Grid item xs={12} sm={6} md={3}>
                       <Typography variant="body2" color="textSecondary">Process Stability</Typography>
-                      <Typography variant="h6" color={loop.noiseLevel < 0.1 && loop.overshoot < 0.1 ? 'success.main' : 'error.main'}>
-                        {loop.noiseLevel < 0.1 && loop.overshoot < 0.1 ? 'Stable' : 'Unstable'}
+                      <Typography variant="h6" color={(loop.noiseLevel || 0) < 0.1 && (loop.overshoot || 0) < 0.1 ? 'success.main' : 'error.main'}>
+                        {(loop.noiseLevel || 0) < 0.1 && (loop.overshoot || 0) < 0.1 ? 'Stable' : 'Unstable'}
                       </Typography>
                     </Grid>
                   </Grid>

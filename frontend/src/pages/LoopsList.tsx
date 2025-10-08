@@ -782,7 +782,11 @@ export default function LoopsList() {
                     borderRadius: 2,
                   }}
                 >
-                  {plantAreas.map(area => (
+                  <MenuItem value="Plant Area">Plant Area</MenuItem>
+                  <MenuItem value="Reactor Section">Reactor Section</MenuItem>
+                  <MenuItem value="Distillation">Distillation</MenuItem>
+                  <MenuItem value="Utilities">Utilities</MenuItem>
+                  {plantAreas.filter(area => !['Plant Area', 'Reactor Section', 'Distillation', 'Utilities'].includes(area)).map(area => (
                     <MenuItem key={area} value={area}>{area}</MenuItem>
                   ))}
                 </Select>
