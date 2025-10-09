@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -13,26 +13,166 @@ import {
   Select,
   MenuItem,
   Chip,
-  Alert
+  Alert,
+  CircularProgress,
+  Autocomplete
 } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
-  Schedule as ScheduleIcon,
   Download as DownloadIcon,
-  Settings as SettingsIcon
+  Settings as SettingsIcon,
+  Visibility as VisibilityIcon
 } from '@mui/icons-material';
+import axios from 'axios';
+
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+
+interface Loop {
+  id: string;
+  name: string;
+  description?: string;
+}
 
 export default function Reports() {
+  const [reportName, setReportName] = useState('');
+  const [reportType, setReportType] = useState('daily');
+  const [timeRange, setTimeRange] = useState('24h');
+  const [format, setFormat] = useState('pdf');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedLoops, setSelectedLoops] = useState<Loop[]>([]);
+  const [loops, setLoops] = useState<Loop[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  // Fetch available loops
+  useEffect(() => {
+    const fetchLoops = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/loops`);
+        setLoops(response.data.loops || []);
+      } catch (err) {
+        console.error('Failed to fetch loops:', err);
+        setLoops([]);
+      }
+    };
+    fetchLoops();
+  }, []);
+
+  const handleGenerateReport = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const payload: any = {
+        reportName: reportName || `${reportType} Report`,
+        reportType,
+        timeRange,
+        format
+      };
+
+      if (timeRange === 'custom') {
+        if (!startDate || !endDate) {
+          throw new Error('Start and end dates are required for custom time range');
+        }
+        payload.startDate = startDate;
+        payload.endDate = endDate;
+      }
+
+      if (selectedLoops.length > 0) {
+        payload.loopIds = selectedLoops.map(l => l.id);
+      }
+
+      const response = await axios.post(`${API_URL}/reports/generate`, payload, {
+        responseType: 'blob'
+      });
+
+      // Create download link
+      const blob = new Blob([response.data], {
+        type: response.headers['content-type']
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Extract filename from content-disposition header or create default
+      const contentDisposition = response.headers['content-disposition'];
+      let filename = `report.${format}`;
+      if (contentDisposition) {
+        const filenameMatch = contentDisposition.match(/filename="(.+)"/);
+        if (filenameMatch) {
+          filename = filenameMatch[1];
+        }
+      }
+
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      setSuccess('Report generated successfully!');
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to generate report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePreview = async () => {
+    setLoading(true);
+    setError(null);
+
+    try {
+      const payload: any = {
+        reportName: reportName || `${reportType} Report`,
+        reportType,
+        timeRange,
+        format: 'pdf'
+      };
+
+      if (timeRange === 'custom') {
+        if (!startDate || !endDate) {
+          throw new Error('Start and end dates are required for custom time range');
+        }
+        payload.startDate = startDate;
+        payload.endDate = endDate;
+      }
+
+      if (selectedLoops.length > 0) {
+        payload.loopIds = selectedLoops.map(l => l.id);
+      }
+
+      const response = await axios.post(`${API_URL}/reports/preview`, payload);
+      console.log('Report Preview:', response.data);
+
+      alert(`Preview:\nTotal Loops: ${response.data.data.summary.totalLoops}\nAvg Service Factor: ${(response.data.data.summary.avgServiceFactor * 100).toFixed(1)}%\nLoops with Issues: ${response.data.data.summary.loopsWithIssues}`);
+    } catch (err: any) {
+      setError(err.response?.data?.message || err.message || 'Failed to preview report');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <Box>
       <Typography variant="h4" gutterBottom>
         Reports
       </Typography>
 
-      <Alert severity="info" sx={{ mb: 3 }}>
-        This feature is planned for future implementation. Users will be able to generate PDF and Excel reports 
-        summarizing loop performance and diagnostics with scheduling options.
-      </Alert>
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {success && (
+        <Alert severity="success" sx={{ mb: 3 }} onClose={() => setSuccess(null)}>
+          {success}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {/* Report Configuration */}
@@ -47,12 +187,18 @@ export default function Reports() {
                   fullWidth
                   label="Report Name"
                   placeholder="e.g., Daily Loop Performance Report"
+                  value={reportName}
+                  onChange={(e) => setReportName(e.target.value)}
                 />
               </Grid>
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Report Type</InputLabel>
-                  <Select label="Report Type" defaultValue="">
+                  <Select
+                    label="Report Type"
+                    value={reportType}
+                    onChange={(e) => setReportType(e.target.value)}
+                  >
                     <MenuItem value="daily">Daily Performance Summary</MenuItem>
                     <MenuItem value="weekly">Weekly Analysis</MenuItem>
                     <MenuItem value="monthly">Monthly Performance Review</MenuItem>
@@ -63,7 +209,11 @@ export default function Reports() {
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Time Range</InputLabel>
-                  <Select label="Time Range" defaultValue="">
+                  <Select
+                    label="Time Range"
+                    value={timeRange}
+                    onChange={(e) => setTimeRange(e.target.value)}
+                  >
                     <MenuItem value="24h">Last 24 Hours</MenuItem>
                     <MenuItem value="7d">Last 7 Days</MenuItem>
                     <MenuItem value="30d">Last 30 Days</MenuItem>
@@ -74,125 +224,139 @@ export default function Reports() {
               <Grid item xs={12} sm={6}>
                 <FormControl fullWidth>
                   <InputLabel>Format</InputLabel>
-                  <Select label="Format" defaultValue="">
+                  <Select
+                    label="Format"
+                    value={format}
+                    onChange={(e) => setFormat(e.target.value)}
+                  >
                     <MenuItem value="pdf">PDF</MenuItem>
-                    <MenuItem value="excel">Excel</MenuItem>
+                   
                     <MenuItem value="csv">CSV</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
+
+              {timeRange === 'custom' && (
+                <>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="Start Date"
+                      type="datetime-local"
+                      value={startDate}
+                      onChange={(e) => setStartDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <TextField
+                      fullWidth
+                      label="End Date"
+                      type="datetime-local"
+                      value={endDate}
+                      onChange={(e) => setEndDate(e.target.value)}
+                      InputLabelProps={{ shrink: true }}
+                    />
+                  </Grid>
+                </>
+              )}
+
               <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Loop Selection"
-                  placeholder="Select loops to include (leave empty for all loops)"
-                  multiline
-                  rows={3}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="KPIs to Include"
-                  placeholder="Service Factor, PI, RPI, Oscillation Index, Stiction Severity"
-                  multiline
-                  rows={2}
+                <Autocomplete
+                  multiple
+                  options={loops}
+                  getOptionLabel={(option) => `${option.name} (${option.id})`}
+                  value={selectedLoops}
+                  onChange={(_, newValue) => setSelectedLoops(newValue)}
+                  renderInput={(params) => (
+                    <TextField
+                      {...params}
+                      label="Loop Selection"
+                      placeholder="Select loops to include (leave empty for all loops)"
+                    />
+                  )}
                 />
               </Grid>
             </Grid>
           </Paper>
         </Grid>
 
-        {/* Scheduling Options */}
+        {/* Quick Templates */}
         <Grid item xs={12} lg={4}>
           <Paper sx={{ p: 3 }}>
             <Typography variant="h6" gutterBottom>
-              Scheduling Options
+              Quick Templates
             </Typography>
             <Grid container spacing={2}>
               <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Schedule Type</InputLabel>
-                  <Select label="Schedule Type" defaultValue="">
-                    <MenuItem value="once">Generate Once</MenuItem>
-                    <MenuItem value="daily">Daily at Shift Change</MenuItem>
-                    <MenuItem value="weekly">Weekly on Monday</MenuItem>
-                    <MenuItem value="monthly">Monthly on 1st</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <TextField
-                  fullWidth
-                  label="Email Recipients"
-                  placeholder="email1@company.com, email2@company.com"
-                  multiline
-                  rows={2}
-                />
-              </Grid>
-              <Grid item xs={12}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<ScheduleIcon />}
-                  disabled
+                <Card
+                  sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  onClick={() => {
+                    setReportType('daily');
+                    setTimeRange('24h');
+                    setReportName('Daily Performance Summary');
+                  }}
                 >
-                  Schedule Report
-                </Button>
-              </Grid>
-            </Grid>
-          </Paper>
-        </Grid>
-
-        {/* Report Templates */}
-        <Grid item xs={12}>
-          <Paper sx={{ p: 3 }}>
-            <Typography variant="h6" gutterBottom>
-              Report Templates
-            </Typography>
-            <Grid container spacing={2}>
-              <Grid item xs={12} sm={6} md={4}>
-                <Card>
                   <CardContent>
-                    <Box display="flex" alignItems="center" mb={2}>
+                    <Box display="flex" alignItems="center" mb={1}>
                       <AssessmentIcon sx={{ mr: 1 }} />
-                      <Typography variant="h6">Daily Summary</Typography>
+                      <Typography variant="subtitle1">Daily Summary</Typography>
                     </Box>
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      Daily performance summary with key KPIs and alerts
+                    <Typography variant="body2" color="textSecondary">
+                      24-hour performance summary with key KPIs
                     </Typography>
-                    <Chip label="PDF" size="small" sx={{ mr: 1 }} />
-                    <Chip label="Excel" size="small" />
+                    <Box mt={1}>
+                      <Chip label="PDF" size="small" sx={{ mr: 0.5 }} />
+                      <Chip label="CSV" size="small" />
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Card>
+              <Grid item xs={12}>
+                <Card
+                  sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  onClick={() => {
+                    setReportType('weekly');
+                    setTimeRange('7d');
+                    setReportName('Weekly Analysis Report');
+                  }}
+                >
                   <CardContent>
-                    <Box display="flex" alignItems="center" mb={2}>
+                    <Box display="flex" alignItems="center" mb={1}>
                       <SettingsIcon sx={{ mr: 1 }} />
-                      <Typography variant="h6">Configuration Review</Typography>
+                      <Typography variant="subtitle1">Weekly Analysis</Typography>
                     </Box>
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      Loop configuration and threshold analysis report
+                    <Typography variant="body2" color="textSecondary">
+                      7-day performance trends and analysis
                     </Typography>
-                    <Chip label="PDF" size="small" sx={{ mr: 1 }} />
-                    <Chip label="Excel" size="small" />
+                    <Box mt={1}>
+                      <Chip label="PDF" size="small" sx={{ mr: 0.5 }} />
+                      <Chip label="CSV" size="small" />
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>
-              <Grid item xs={12} sm={6} md={4}>
-                <Card>
+              <Grid item xs={12}>
+                <Card
+                  sx={{ cursor: 'pointer', '&:hover': { bgcolor: 'action.hover' } }}
+                  onClick={() => {
+                    setReportType('monthly');
+                    setTimeRange('30d');
+                    setReportName('Monthly Performance Review');
+                  }}
+                >
                   <CardContent>
-                    <Box display="flex" alignItems="center" mb={2}>
+                    <Box display="flex" alignItems="center" mb={1}>
                       <AssessmentIcon sx={{ mr: 1 }} />
-                      <Typography variant="h6">Diagnostic Analysis</Typography>
+                      <Typography variant="subtitle1">Monthly Review</Typography>
                     </Box>
-                    <Typography variant="body2" color="textSecondary" paragraph>
-                      Detailed diagnostic results and root-cause analysis
+                    <Typography variant="body2" color="textSecondary">
+                      30-day comprehensive performance review
                     </Typography>
-                    <Chip label="PDF" size="small" sx={{ mr: 1 }} />
-                    <Chip label="Excel" size="small" />
+                    <Box mt={1}>
+                      <Chip label="PDF" size="small" sx={{ mr: 0.5 }} />
+                      <Chip label="CSV" size="small" />
+                    </Box>
                   </CardContent>
                 </Card>
               </Grid>
@@ -206,19 +370,21 @@ export default function Reports() {
             <Box display="flex" justifyContent="center" gap={2}>
               <Button
                 variant="contained"
-                startIcon={<DownloadIcon />}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
                 size="large"
-                disabled
+                onClick={handleGenerateReport}
+                disabled={loading}
               >
-                Generate Report
+                {loading ? 'Generating...' : 'Generate Report'}
               </Button>
               <Button
                 variant="outlined"
-                startIcon={<SettingsIcon />}
+                startIcon={<VisibilityIcon />}
                 size="large"
-                disabled
+                onClick={handlePreview}
+                disabled={loading}
               >
-                Save Template
+                Preview Data
               </Button>
             </Box>
           </Paper>

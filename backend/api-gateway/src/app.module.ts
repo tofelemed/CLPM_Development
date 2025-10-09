@@ -6,6 +6,7 @@ import { LoopsModule } from './loops/loops.module';
 import { DataModule } from './data/data.module';
 import { KpiModule } from './kpi/kpi.module';
 import { DiagnosticsModule } from './diagnostics/diagnostics.module';
+import { ReportsModule } from './reports/reports.module';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/jwt.guard';
 import { RolesGuard } from './auth/roles.guard';
@@ -42,7 +43,8 @@ import { RolesGuard } from './auth/roles.guard';
     LoopsModule,
     DataModule,
     KpiModule,
-    DiagnosticsModule
+    DiagnosticsModule,
+    ReportsModule
   ],
   providers: [
     // Temporarily disabled for development
