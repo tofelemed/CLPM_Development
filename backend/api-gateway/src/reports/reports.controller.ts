@@ -2,7 +2,6 @@ import { Body, Controller, Post, Res, HttpStatus, BadRequestException } from '@n
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { Response } from 'express';
 import { ReportsService } from './reports.service';
-import { PdfGeneratorService } from './generators/pdf-generator.service';
 import { ExcelGeneratorService } from './generators/excel-generator.service';
 import { GenerateReportDto, ReportFormat } from './dto/generate-report.dto';
 import { Roles } from '../auth/roles.decorator';
@@ -13,7 +12,6 @@ import { Roles } from '../auth/roles.decorator';
 export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
-    private readonly pdfGenerator: PdfGeneratorService,
     private readonly excelGenerator: ExcelGeneratorService
   ) {}
 
@@ -30,18 +28,12 @@ export class ReportsController {
       // Get report data
       const reportData = await this.reportsService.generateReportData(dto);
 
-      // Generate report in requested format
+      // Generate report in requested format (default to CSV if not specified)
       let buffer: Buffer;
       let contentType: string;
       let fileExtension: string;
 
       switch (dto.format) {
-        case ReportFormat.PDF:
-          buffer = await this.pdfGenerator.generatePDF(reportData);
-          contentType = 'application/pdf';
-          fileExtension = 'pdf';
-          break;
-
         case ReportFormat.EXCEL:
           buffer = await this.excelGenerator.generateExcel(reportData);
           contentType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
@@ -49,13 +41,11 @@ export class ReportsController {
           break;
 
         case ReportFormat.CSV:
+        default:
           buffer = await this.excelGenerator.generateCSV(reportData);
           contentType = 'text/csv';
           fileExtension = 'csv';
           break;
-
-        default:
-          throw new BadRequestException('Unsupported report format');
       }
 
       // Generate filename

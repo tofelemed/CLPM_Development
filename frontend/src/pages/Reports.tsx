@@ -15,13 +15,27 @@ import {
   Chip,
   Alert,
   CircularProgress,
-  Autocomplete
+  Autocomplete,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  IconButton,
+  Divider
 } from '@mui/material';
 import {
   Assessment as AssessmentIcon,
   Download as DownloadIcon,
   Settings as SettingsIcon,
-  Visibility as VisibilityIcon
+  Visibility as VisibilityIcon,
+  Print as PrintIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import axios from 'axios';
 
@@ -37,7 +51,6 @@ export default function Reports() {
   const [reportName, setReportName] = useState('');
   const [reportType, setReportType] = useState('daily');
   const [timeRange, setTimeRange] = useState('24h');
-  const [format, setFormat] = useState('pdf');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [selectedLoops, setSelectedLoops] = useState<Loop[]>([]);
@@ -45,6 +58,10 @@ export default function Reports() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showResultDialog, setShowResultDialog] = useState(false);
+  const [reportData, setReportData] = useState<any>(null);
+  const [csvBlob, setCsvBlob] = useState<Blob | null>(null);
+  const [csvFilename, setCsvFilename] = useState<string>('');
 
   // Fetch available loops
   useEffect(() => {
@@ -69,8 +86,7 @@ export default function Reports() {
       const payload: any = {
         reportName: reportName || `${reportType} Report`,
         reportType,
-        timeRange,
-        format
+        timeRange
       };
 
       if (timeRange === 'custom') {
@@ -85,34 +101,35 @@ export default function Reports() {
         payload.loopIds = selectedLoops.map(l => l.id);
       }
 
-      const response = await axios.post(`${API_URL}/reports/generate`, payload, {
+      // First, get the preview data
+      const previewResponse = await axios.post(`${API_URL}/reports/preview`, payload);
+      setReportData(previewResponse.data.data);
+
+      // Then generate CSV
+      const csvPayload = { ...payload, format: 'csv' };
+      const csvResponse = await axios.post(`${API_URL}/reports/generate`, csvPayload, {
         responseType: 'blob'
       });
 
-      // Create download link
-      const blob = new Blob([response.data], {
-        type: response.headers['content-type']
+      // Store CSV blob for download
+      const blob = new Blob([csvResponse.data], {
+        type: 'text/csv'
       });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
+      setCsvBlob(blob);
 
-      // Extract filename from content-disposition header or create default
-      const contentDisposition = response.headers['content-disposition'];
-      let filename = `report.${format}`;
+      // Extract filename
+      const contentDisposition = csvResponse.headers['content-disposition'];
+      let filename = `report.csv`;
       if (contentDisposition) {
         const filenameMatch = contentDisposition.match(/filename="(.+)"/);
         if (filenameMatch) {
           filename = filenameMatch[1];
         }
       }
+      setCsvFilename(filename);
 
-      link.setAttribute('download', filename);
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
+      // Show dialog with results
+      setShowResultDialog(true);
       setSuccess('Report generated successfully!');
     } catch (err: any) {
       setError(err.response?.data?.message || err.message || 'Failed to generate report');
@@ -121,39 +138,28 @@ export default function Reports() {
     }
   };
 
-  const handlePreview = async () => {
-    setLoading(true);
-    setError(null);
+  const handleDownloadCSV = () => {
+    if (!csvBlob) return;
+    
+    const url = window.URL.createObjectURL(csvBlob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', csvFilename);
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
+  };
 
-    try {
-      const payload: any = {
-        reportName: reportName || `${reportType} Report`,
-        reportType,
-        timeRange,
-        format: 'pdf'
-      };
+  const handlePrintReport = () => {
+    window.print();
+  };
 
-      if (timeRange === 'custom') {
-        if (!startDate || !endDate) {
-          throw new Error('Start and end dates are required for custom time range');
-        }
-        payload.startDate = startDate;
-        payload.endDate = endDate;
-      }
-
-      if (selectedLoops.length > 0) {
-        payload.loopIds = selectedLoops.map(l => l.id);
-      }
-
-      const response = await axios.post(`${API_URL}/reports/preview`, payload);
-      console.log('Report Preview:', response.data);
-
-      alert(`Preview:\nTotal Loops: ${response.data.data.summary.totalLoops}\nAvg Service Factor: ${(response.data.data.summary.avgServiceFactor * 100).toFixed(1)}%\nLoops with Issues: ${response.data.data.summary.loopsWithIssues}`);
-    } catch (err: any) {
-      setError(err.response?.data?.message || err.message || 'Failed to preview report');
-    } finally {
-      setLoading(false);
-    }
+  const handleCloseDialog = () => {
+    setShowResultDialog(false);
+    setReportData(null);
+    setCsvBlob(null);
+    setCsvFilename('');
   };
 
   return (
@@ -218,20 +224,6 @@ export default function Reports() {
                     <MenuItem value="7d">Last 7 Days</MenuItem>
                     <MenuItem value="30d">Last 30 Days</MenuItem>
                     <MenuItem value="custom">Custom Range</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} sm={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Format</InputLabel>
-                  <Select
-                    label="Format"
-                    value={format}
-                    onChange={(e) => setFormat(e.target.value)}
-                  >
-                    <MenuItem value="pdf">PDF</MenuItem>
-                   
-                    <MenuItem value="csv">CSV</MenuItem>
                   </Select>
                 </FormControl>
               </Grid>
@@ -306,8 +298,7 @@ export default function Reports() {
                       24-hour performance summary with key KPIs
                     </Typography>
                     <Box mt={1}>
-                      <Chip label="PDF" size="small" sx={{ mr: 0.5 }} />
-                      <Chip label="CSV" size="small" />
+                      <Chip label="CSV Export" size="small" color="primary" />
                     </Box>
                   </CardContent>
                 </Card>
@@ -330,8 +321,7 @@ export default function Reports() {
                       7-day performance trends and analysis
                     </Typography>
                     <Box mt={1}>
-                      <Chip label="PDF" size="small" sx={{ mr: 0.5 }} />
-                      <Chip label="CSV" size="small" />
+                      <Chip label="CSV Export" size="small" color="primary" />
                     </Box>
                   </CardContent>
                 </Card>
@@ -354,8 +344,7 @@ export default function Reports() {
                       30-day comprehensive performance review
                     </Typography>
                     <Box mt={1}>
-                      <Chip label="PDF" size="small" sx={{ mr: 0.5 }} />
-                      <Chip label="CSV" size="small" />
+                      <Chip label="CSV Export" size="small" color="primary" />
                     </Box>
                   </CardContent>
                 </Card>
@@ -370,26 +359,207 @@ export default function Reports() {
             <Box display="flex" justifyContent="center" gap={2}>
               <Button
                 variant="contained"
-                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <DownloadIcon />}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <AssessmentIcon />}
                 size="large"
                 onClick={handleGenerateReport}
                 disabled={loading}
               >
-                {loading ? 'Generating...' : 'Generate Report'}
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<VisibilityIcon />}
-                size="large"
-                onClick={handlePreview}
-                disabled={loading}
-              >
-                Preview Data
+                {loading ? 'Generating Report...' : 'Generate Report'}
               </Button>
             </Box>
+            <Typography variant="body2" color="text.secondary" align="center" sx={{ mt: 2 }}>
+              Report will be generated in CSV format. You can download or print to PDF from the results dialog.
+            </Typography>
           </Paper>
         </Grid>
       </Grid>
+
+      {/* Results Dialog */}
+      <Dialog
+        open={showResultDialog}
+        onClose={handleCloseDialog}
+        maxWidth="lg"
+        fullWidth
+        PaperProps={{
+          sx: {
+            '@media print': {
+              boxShadow: 'none',
+              maxWidth: '100%',
+              margin: 0
+            }
+          }
+        }}
+      >
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', '@media print': { display: 'none' } }}>
+          <Typography variant="h5">Report Results</Typography>
+          <IconButton onClick={handleCloseDialog} size="small">
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+        
+        <DialogContent dividers>
+          {reportData && (
+            <Box>
+              {/* Report Metadata */}
+              <Paper sx={{ p: 2, mb: 3, bgcolor: 'primary.light', color: 'primary.contrastText' }}>
+                <Typography variant="h6" gutterBottom>
+                  {reportData.metadata.reportName}
+                </Typography>
+                <Grid container spacing={2}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Report Type:</strong> {reportData.metadata.reportType}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Generated:</strong> {new Date(reportData.metadata.generatedAt).toLocaleString()}
+                    </Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2">
+                      <strong>Period:</strong> {new Date(reportData.metadata.timeRange.start).toLocaleString()} to {new Date(reportData.metadata.timeRange.end).toLocaleString()}
+                    </Typography>
+                  </Grid>
+                </Grid>
+              </Paper>
+
+              {/* Summary Section */}
+              <Typography variant="h6" gutterBottom>Executive Summary</Typography>
+              <Grid container spacing={2} sx={{ mb: 3 }}>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="text.secondary" gutterBottom>Total Loops</Typography>
+                      <Typography variant="h4">{reportData.summary.totalLoops}</Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="text.secondary" gutterBottom>Avg Service Factor</Typography>
+                      <Typography variant="h4" color={reportData.summary.avgServiceFactor >= 0.75 ? 'success.main' : 'error.main'}>
+                        {(reportData.summary.avgServiceFactor * 100).toFixed(1)}%
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="text.secondary" gutterBottom>Loops with Issues</Typography>
+                      <Typography variant="h4" color={reportData.summary.loopsWithIssues === 0 ? 'success.main' : 'warning.main'}>
+                        {reportData.summary.loopsWithIssues}
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="text.secondary" gutterBottom>Avg Performance Index</Typography>
+                      <Typography variant="h4" color={reportData.summary.avgPI >= 0.65 ? 'success.main' : 'error.main'}>
+                        {(reportData.summary.avgPI * 100).toFixed(1)}%
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="text.secondary" gutterBottom>Avg RPI</Typography>
+                      <Typography variant="h4">
+                        {(reportData.summary.avgRPI * 100).toFixed(1)}%
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+                <Grid item xs={12} sm={6} md={4}>
+                  <Card>
+                    <CardContent>
+                      <Typography color="text.secondary" gutterBottom>Health Score</Typography>
+                      <Typography variant="h4" color={reportData.summary.healthPercentage >= 70 ? 'success.main' : 'warning.main'}>
+                        {reportData.summary.healthPercentage}%
+                      </Typography>
+                    </CardContent>
+                  </Card>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* Loop Details Table */}
+              <Typography variant="h6" gutterBottom>Loop Details</Typography>
+              <TableContainer component={Paper} sx={{ maxHeight: 400 }}>
+                <Table stickyHeader size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell><strong>Loop Name</strong></TableCell>
+                      <TableCell align="center"><strong>Service Factor</strong></TableCell>
+                      <TableCell align="center"><strong>PI</strong></TableCell>
+                      <TableCell align="center"><strong>RPI</strong></TableCell>
+                      <TableCell align="center"><strong>Osc Index</strong></TableCell>
+                      <TableCell align="center"><strong>Stiction</strong></TableCell>
+                      <TableCell align="center"><strong>Records</strong></TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {reportData.loops.filter((l: any) => l !== null).map((loop: any) => (
+                      <TableRow key={loop.loop_id}>
+                        <TableCell>{loop.name}</TableCell>
+                        <TableCell align="center">
+                          {loop.kpiStats ? 
+                            <Chip 
+                              label={`${(loop.kpiStats.avgServiceFactor * 100).toFixed(1)}%`}
+                              size="small"
+                              color={loop.kpiStats.avgServiceFactor >= 0.75 ? 'success' : 'error'}
+                            /> : 'N/A'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {loop.kpiStats ? `${(loop.kpiStats.avgPI * 100).toFixed(1)}%` : 'N/A'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {loop.kpiStats ? `${(loop.kpiStats.avgRPI * 100).toFixed(1)}%` : 'N/A'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {loop.kpiStats ? loop.kpiStats.avgOscIndex?.toFixed(3) : 'N/A'}
+                        </TableCell>
+                        <TableCell align="center">
+                          {loop.kpiStats ? loop.kpiStats.avgStiction?.toFixed(3) : 'N/A'}
+                        </TableCell>
+                        <TableCell align="center">{loop.recordCount || 0}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+          )}
+        </DialogContent>
+        
+        <DialogActions sx={{ p: 2, gap: 1, '@media print': { display: 'none' } }}>
+          <Button
+            variant="outlined"
+            startIcon={<DownloadIcon />}
+            onClick={handleDownloadCSV}
+            color="primary"
+          >
+            Download CSV
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<PrintIcon />}
+            onClick={handlePrintReport}
+            color="primary"
+          >
+            Print / Save as PDF
+          </Button>
+          <Button onClick={handleCloseDialog} color="inherit">
+            Close
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 }

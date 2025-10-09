@@ -1,6 +1,7 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { PgService } from '../shared/pg.service';
 import { GenerateReportDto, TimeRange } from './dto/generate-report.dto';
+import { toNumber, convertRowsNumbers } from '../shared/utils/number.utils';
 
 export interface ReportData {
   metadata: {
@@ -173,7 +174,18 @@ export class ReportsService {
       WHERE loop_id = $1 AND timestamp BETWEEN $2 AND $3
       ORDER BY timestamp DESC
     `;
-    const { rows: kpiRows } = await this.pg.query(kpiQuery, [loopId, startDate, endDate]);
+    const { rows: rawKpiRows } = await this.pg.query(kpiQuery, [loopId, startDate, endDate]);
+    
+    // Convert all numeric fields from strings to numbers
+    const numericFields = [
+      'service_factor', 'effective_sf', 'sat_percent', 'output_travel',
+      'pi', 'rpi', 'osc_index', 'stiction', 'deadband', 'saturation',
+      'valve_travel', 'settling_time', 'overshoot', 'rise_time',
+      'peak_error', 'integral_error', 'derivative_error', 'control_error',
+      'valve_reversals', 'noise_level', 'process_gain', 'time_constant',
+      'dead_time', 'setpoint_changes', 'mode_changes'
+    ];
+    const kpiRows = convertRowsNumbers(rawKpiRows, numericFields);
 
     // Get diagnostic data
     const diagQuery = `
@@ -187,8 +199,8 @@ export class ReportsService {
     `;
     const { rows: diagRows } = await this.pg.query(diagQuery, [loopId, startDate, endDate]);
 
-    // Calculate KPI statistics
-    const kpiStats = this.calculateKPIStats(kpiRows);
+    // Calculate KPI statistics using database aggregation (like KPI service does)
+    const kpiStats = await this.calculateKPIStatsFromDatabase(loopId, startDate, endDate);
 
     return {
       loop_id: loopId,
@@ -206,67 +218,59 @@ export class ReportsService {
     };
   }
 
-  private calculateKPIStats(kpiRows: any[]): any {
-    if (kpiRows.length === 0) {
+  private async calculateKPIStatsFromDatabase(
+    loopId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<any> {
+    // Use database aggregation like KPI service does - returns proper numeric types!
+    const statsQuery = `
+      SELECT 
+        COUNT(*) as record_count,
+        AVG(CAST(service_factor AS NUMERIC)) as avg_service_factor,
+        AVG(CAST(pi AS NUMERIC)) as avg_pi,
+        AVG(CAST(rpi AS NUMERIC)) as avg_rpi,
+        AVG(CAST(osc_index AS NUMERIC)) as avg_osc_index,
+        AVG(CAST(stiction AS NUMERIC)) as avg_stiction,
+        MIN(CAST(service_factor AS NUMERIC)) as min_service_factor,
+        MAX(CAST(service_factor AS NUMERIC)) as max_service_factor,
+        MIN(CAST(pi AS NUMERIC)) as min_pi,
+        MAX(CAST(pi AS NUMERIC)) as max_pi
+      FROM kpi_results
+      WHERE loop_id = $1 AND timestamp BETWEEN $2 AND $3
+    `;
+
+    const { rows } = await this.pg.query(statsQuery, [loopId, startDate, endDate]);
+
+    if (rows.length === 0 || rows[0].record_count === '0') {
       return null;
     }
 
-    const stats = {
-      avgServiceFactor: null,
-      avgPI: null,
-      avgRPI: null,
-      avgOscIndex: null,
-      avgStiction: null,
-      minServiceFactor: null,
-      maxServiceFactor: null,
-      minPI: null,
-      maxPI: null,
-      latest: kpiRows[0]
+    const stats = rows[0];
+
+    // Get latest record for reference
+    const latestQuery = `
+      SELECT *
+      FROM kpi_results
+      WHERE loop_id = $1 AND timestamp BETWEEN $2 AND $3
+      ORDER BY timestamp DESC
+      LIMIT 1
+    `;
+    const { rows: latestRows } = await this.pg.query(latestQuery, [loopId, startDate, endDate]);
+
+    // Convert to proper numbers (database AVG returns numeric, but still need safe conversion)
+    return {
+      avgServiceFactor: toNumber(stats.avg_service_factor),
+      avgPI: toNumber(stats.avg_pi),
+      avgRPI: toNumber(stats.avg_rpi),
+      avgOscIndex: toNumber(stats.avg_osc_index),
+      avgStiction: toNumber(stats.avg_stiction),
+      minServiceFactor: toNumber(stats.min_service_factor),
+      maxServiceFactor: toNumber(stats.max_service_factor),
+      minPI: toNumber(stats.min_pi),
+      maxPI: toNumber(stats.max_pi),
+      latest: latestRows.length > 0 ? latestRows[0] : null
     };
-
-    let sfSum = 0, piSum = 0, rpiSum = 0, oscSum = 0, stictionSum = 0;
-    let sfCount = 0, piCount = 0, rpiCount = 0, oscCount = 0, stictionCount = 0;
-    let minSF = Number.MAX_VALUE, maxSF = Number.MIN_VALUE;
-    let minPI = Number.MAX_VALUE, maxPI = Number.MIN_VALUE;
-
-    kpiRows.forEach(row => {
-      if (row.service_factor !== null && !isNaN(row.service_factor)) {
-        sfSum += row.service_factor;
-        sfCount++;
-        minSF = Math.min(minSF, row.service_factor);
-        maxSF = Math.max(maxSF, row.service_factor);
-      }
-      if (row.pi !== null && !isNaN(row.pi)) {
-        piSum += row.pi;
-        piCount++;
-        minPI = Math.min(minPI, row.pi);
-        maxPI = Math.max(maxPI, row.pi);
-      }
-      if (row.rpi !== null && !isNaN(row.rpi)) {
-        rpiSum += row.rpi;
-        rpiCount++;
-      }
-      if (row.osc_index !== null && !isNaN(row.osc_index)) {
-        oscSum += row.osc_index;
-        oscCount++;
-      }
-      if (row.stiction !== null && !isNaN(row.stiction)) {
-        stictionSum += row.stiction;
-        stictionCount++;
-      }
-    });
-
-    stats.avgServiceFactor = sfCount > 0 ? sfSum / sfCount : null;
-    stats.avgPI = piCount > 0 ? piSum / piCount : null;
-    stats.avgRPI = rpiCount > 0 ? rpiSum / rpiCount : null;
-    stats.avgOscIndex = oscCount > 0 ? oscSum / oscCount : null;
-    stats.avgStiction = stictionCount > 0 ? stictionSum / stictionCount : null;
-    stats.minServiceFactor = sfCount > 0 ? minSF : null;
-    stats.maxServiceFactor = sfCount > 0 ? maxSF : null;
-    stats.minPI = piCount > 0 ? minPI : null;
-    stats.maxPI = piCount > 0 ? maxPI : null;
-
-    return stats;
   }
 
   private calculateSummary(loops: any[]): any {
@@ -282,42 +286,49 @@ export class ReportsService {
         let hasAnyData = false;
         let hasIssues = false;
 
-        if (loop.kpiStats.avgServiceFactor !== null && !isNaN(loop.kpiStats.avgServiceFactor)) {
-          totalSF += loop.kpiStats.avgServiceFactor;
+        // Convert to number safely
+        const avgSF = toNumber(loop.kpiStats.avgServiceFactor);
+        const avgPI = toNumber(loop.kpiStats.avgPI);
+        const avgRPI = toNumber(loop.kpiStats.avgRPI);
+        const avgOscIndex = toNumber(loop.kpiStats.avgOscIndex);
+        const avgStiction = toNumber(loop.kpiStats.avgStiction);
+
+        if (avgSF !== null) {
+          totalSF += avgSF;
           sfCount++;
           hasAnyData = true;
 
-          if (loop.kpiStats.avgServiceFactor < 0.75) {
+          if (avgSF < 0.75) {
             hasIssues = true;
           }
         }
 
-        if (loop.kpiStats.avgPI !== null && !isNaN(loop.kpiStats.avgPI)) {
-          totalPI += loop.kpiStats.avgPI;
+        if (avgPI !== null) {
+          totalPI += avgPI;
           piCount++;
           hasAnyData = true;
 
-          if (loop.kpiStats.avgPI < 0.65) {
+          if (avgPI < 0.65) {
             hasIssues = true;
           }
         }
 
-        if (loop.kpiStats.avgRPI !== null && !isNaN(loop.kpiStats.avgRPI)) {
-          totalRPI += loop.kpiStats.avgRPI;
+        if (avgRPI !== null) {
+          totalRPI += avgRPI;
           rpiCount++;
           hasAnyData = true;
         }
 
-        if (loop.kpiStats.avgOscIndex !== null && !isNaN(loop.kpiStats.avgOscIndex)) {
+        if (avgOscIndex !== null) {
           hasAnyData = true;
-          if (loop.kpiStats.avgOscIndex > 0.4) {
+          if (avgOscIndex > 0.4) {
             hasIssues = true;
           }
         }
 
-        if (loop.kpiStats.avgStiction !== null && !isNaN(loop.kpiStats.avgStiction)) {
+        if (avgStiction !== null) {
           hasAnyData = true;
-          if (loop.kpiStats.avgStiction > 0.5) {
+          if (avgStiction > 0.5) {
             hasIssues = true;
           }
         }

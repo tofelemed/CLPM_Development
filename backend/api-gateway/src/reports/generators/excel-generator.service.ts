@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import * as ExcelJS from 'exceljs';
 import { ReportData } from '../reports.service';
+import { toNumber, toPercentage } from '../../shared/utils/number.utils';
 
 @Injectable()
 export class ExcelGeneratorService {
@@ -109,11 +110,11 @@ export class ExcelGeneratorService {
     const summaryData = [
       ['Metric', 'Value'],
       ['Total Loops Analyzed', reportData.summary.totalLoops],
-      ['Average Service Factor', `${(reportData.summary.avgServiceFactor * 100).toFixed(1)}%`],
-      ['Average Performance Index (PI)', `${(reportData.summary.avgPI * 100).toFixed(1)}%`],
-      ['Average RPI', `${(reportData.summary.avgRPI * 100).toFixed(1)}%`],
+      ['Average Service Factor', toPercentage(reportData.summary.avgServiceFactor, 1)],
+      ['Average Performance Index (PI)', toPercentage(reportData.summary.avgPI, 1)],
+      ['Average RPI', toPercentage(reportData.summary.avgRPI, 1)],
       ['Loops with Issues', reportData.summary.loopsWithIssues],
-      ['Overall Health', `${reportData.summary.healthPercentage}%`]
+      ['Overall Health', `${toNumber(reportData.summary.healthPercentage) || 0}%`]
     ];
 
     sheet.addTable({
@@ -168,15 +169,15 @@ export class ExcelGeneratorService {
         loop.pv_tag,
         loop.op_tag,
         loop.sp_tag,
-        stats.avgServiceFactor ? (stats.avgServiceFactor * 100).toFixed(1) + '%' : 'N/A',
-        stats.avgPI ? (stats.avgPI * 100).toFixed(1) + '%' : 'N/A',
-        stats.avgRPI ? (stats.avgRPI * 100).toFixed(1) + '%' : 'N/A',
-        stats.avgOscIndex ? stats.avgOscIndex.toFixed(3) : 'N/A',
-        stats.avgStiction ? stats.avgStiction.toFixed(3) : 'N/A',
-        stats.minServiceFactor ? (stats.minServiceFactor * 100).toFixed(1) + '%' : 'N/A',
-        stats.maxServiceFactor ? (stats.maxServiceFactor * 100).toFixed(1) + '%' : 'N/A',
-        stats.minPI ? (stats.minPI * 100).toFixed(1) + '%' : 'N/A',
-        stats.maxPI ? (stats.maxPI * 100).toFixed(1) + '%' : 'N/A',
+        toPercentage(stats.avgServiceFactor, 1),
+        toPercentage(stats.avgPI, 1),
+        toPercentage(stats.avgRPI, 1),
+        toNumber(stats.avgOscIndex) !== null ? toNumber(stats.avgOscIndex).toFixed(3) : 'N/A',
+        toNumber(stats.avgStiction) !== null ? toNumber(stats.avgStiction).toFixed(3) : 'N/A',
+        toPercentage(stats.minServiceFactor, 1),
+        toPercentage(stats.maxServiceFactor, 1),
+        toPercentage(stats.minPI, 1),
+        toPercentage(stats.maxPI, 1),
         loop.recordCount || 0
       ]);
     });

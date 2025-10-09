@@ -8,7 +8,6 @@ export enum ReportType {
 }
 
 export enum ReportFormat {
-  PDF = 'pdf',
   EXCEL = 'excel',
   CSV = 'csv'
 }
@@ -40,7 +39,8 @@ export class GenerateReportDto {
   endDate?: string;
 
   @IsEnum(ReportFormat)
-  format: ReportFormat;
+  @IsOptional()
+  format?: ReportFormat;
 
   @IsArray()
   @IsOptional()

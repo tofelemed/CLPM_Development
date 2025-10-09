@@ -21,7 +21,7 @@ class KPIWorkerService {
     try {
       // Connect to PostgreSQL database
       this.db = new Pool({
-        host: process.env.DB_HOST || 'localhost',
+        host: process.env.DB_HOST || 'postgres',
         port: process.env.DB_PORT || 5432,
         database: process.env.DB_NAME || 'clpm',
         user: process.env.DB_USER || 'clpm',
@@ -38,7 +38,7 @@ class KPIWorkerService {
 
       // Initialize InfluxDB client
       this.influxClient = new InfluxDBClient({
-        url: process.env.INFLUXDB_URL || 'http://localhost:8086',
+        url: process.env.INFLUXDB_URL || 'http://influxdb:8086',
         token: process.env.INFLUXDB_TOKEN || 'o6cjAfkS_jFCvEePxDyz33zMQaJgbbSz_oqkSPzMTbROImhLlwDHwh8la4VMkMyNJsHWrVYs_JEHpWZGtFeaDw==',
         org: process.env.INFLUXDB_ORG || 'clpm',
         bucket: process.env.INFLUXDB_BUCKET || 'clpm_data',
